@@ -1,0 +1,10 @@
+=====
+drf-remotejwtauthentication
+=====
+
+...
+
+Quick start
+-----------
+
+...
