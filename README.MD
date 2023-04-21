@@ -1,4 +1,4 @@
-# Django-Restframework-RemoteJWT
+# DRF-RemoteJWT
 
 This is a package for the implementation of a remote authentication backend using 
 JWTs.
