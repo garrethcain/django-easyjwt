@@ -6,8 +6,9 @@ The target would be microservice architecture ecosystems.
 
 PyPi package can be found here: https://pypi.org/project/drf-remotejwt/
 
-This package is used in the example [auth-client-service-example](\
-https://github.com/garrethcain/auth-client-service-example) project. 
+This package is used in the example 
+[auth-client-service-example](https://github.com/garrethcain/auth-client-service-example)
+project. 
 The package is a wrapper for all the main components of the auth-service; eg.
 
 * /token/ to obtain an access and a refresh token, 
