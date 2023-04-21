@@ -1,15 +1,19 @@
 # DRF-RemoteJWT
 
-This is a package for the implementation of a remote authentication backend using 
-JWTs.
+This is a package for the implementation of a remote authentication backend 
+primarily meant for use with JWTs but supporting sessions as well. 
+The target would be microservice architecture ecosystems.
 
-It contains a drf_remotejwt package which is used in 
-the example `test_api` (URL pending) project. The package is a wrapper for all the
-main components of the auth-service; eg.
-1. /token/ to obtain an access and a refresh token, 
+PyPi package can be found here: https://pypi.org/project/drf-remotejwt/
+
+This package is used in the example [auth-client-service-example](\
+https://github.com/garrethcain/auth-client-service-example) project. 
+The package is a wrapper for all the main components of the auth-service; eg.
+
+* /token/ to obtain an access and a refresh token, 
     and create/update the local instance.
-2. /token/refresh/ to refresh an access token.
-3. /token/verify/ to confirm if a token is valid or not.
+* /token/refresh/ to refresh an access token.
+* /token/verify/ to confirm if a token is valid or not.
 
 Which all match the auth service exactly. You can decide on the URLs prefix path
 by modifying the config/urls.py file appropriately. 
@@ -27,8 +31,8 @@ Eg;
 /auth/token/verify/
 ```
 
-All you need to is add the remotejwt URLs to your API service that will be 
-authing against the remote service.
+All you need to is add the drf-remotejwt URLs to your API service that will be 
+authing against the remote auth-service.
 
 You can't create users in the local client-service. If you retrieve a different
 user from the auth-service you may get integrity errors in that the DRF-RemoteJWT 
