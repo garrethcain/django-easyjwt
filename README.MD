@@ -4,15 +4,15 @@ This is a package for the implementation of a remote authentication backend usin
 JWTs.
 
 It contains a drf_remotejwt package which is used in 
-the example `test_api` project. The package is a wrapper for all the
+the example `test_api` (URL pending) project. The package is a wrapper for all the
 main components of the auth-service; eg.
 1. /token/ to obtain an access and a refresh token, 
     and create/update the local instance.
-2. /refresh/ to obtain a new access token.
-3. /verify/ to confirm if a token is valid or not.
+2. /token/refresh/ to refresh an access token.
+3. /token/verify/ to confirm if a token is valid or not.
 
-Which all match the auth service exactly. You can decide on the URLs path by 
-modifying the config/urls.py file appropriately. 
+Which all match the auth service exactly. You can decide on the URLs prefix path
+by modifying the config/urls.py file appropriately. 
 
 For example;
 `path('auth/', include("drf_remotejwt.urls"))` 
@@ -20,18 +20,26 @@ For example;
 ... will prefix the `/token/`, `/token/verify/`, and `/token/refresh/` endpoints 
 with `/auth/` which gives some clean seperation.
 
+Eg;
+```
+/auth/token/
+/auth/token/refresh/
+/auth/token/verify/
+```
+
 All you need to is add the remotejwt URLs to your API service that will be 
 authing against the remote service.
 
-You obviously can't create users in the local service. If you retrieve a different
-user from the auth-service you may get integrity errors in that the RemoteJWT 
-package will overwrite your local user with data from the auth-service... It will
-assume your local user was updated in the remote auth-service.
+You can't create users in the local client-service. If you retrieve a different
+user from the auth-service you may get integrity errors in that the DRF-RemoteJWT 
+package will overwrite your local user with data from the auth-service... 
+It will assume your local user was updated in the remote auth-service.
 
 Your project can still use HMAC by implementing one of our HMAC backends. In this
 case though, the HAMC keys are local to your project and not the remote 
 Auth-Service. So you need to set up your own relationship and from then on, can 
 auth using HMAC without connecting to the auth-service at all.
+It would be unusual for HMAC keys to operate across services.
 
 
 ## Get Started
