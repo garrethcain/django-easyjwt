@@ -3,7 +3,7 @@
 This is a package for the implementation of a remote authentication backend using 
 JWTs.
 
-It contains a djangorestframework_remotejwt package which is used in 
+It contains a drf_remotejwt package which is used in 
 the example `test_api` project. The package is a wrapper for all the
 main components of the auth-service; eg.
 1. /token/ to obtain an access and a refresh token, 
@@ -15,7 +15,7 @@ Which all match the auth service exactly. You can decide on the URLs path by
 modifying the config/urls.py file appropriately. 
 
 For example;
-`path('auth/', include("djangorestframework_remotejwt.urls"))` 
+`path('auth/', include("drf_remotejwt.urls"))` 
 
 ... will prefix the `/token/`, `/token/verify/`, and `/token/refresh/` endpoints 
 with `/auth/` which gives some clean seperation.
@@ -41,11 +41,11 @@ Then create your first app to contain a view that returns something to indicate
 success.
 Change DRFs default permission class to IsAuthenticated.
 
-Install package `djangorestframework_remotejwt` and add the following to the 
+Install package `drf_remotejwt` and add the following to the 
 INSTALLED_APPS;
 
     1. 'rest_framework', # because it is an API.
-    2. 'djangorestframework_remotejwt', # for the auth backend to access the 
+    2. 'drf_remotejwt', # for the auth backend to access the 
         auth-service.
     3. "custom_user.apps.CustomUserConfig", # because it's easier if your local 
         user model matches the auth service's one.
@@ -101,7 +101,7 @@ REST_FRAMEWORK = {
 Of course, this config should already contain;
 
 ```JSON
-"djangorestframework_remotejwt.authentication.RemoteJWTAuthentication",     # Use our service
+"drf_remotejwt.authentication.RemoteJWTAuthentication",     # Use our service
 ```
 
 
