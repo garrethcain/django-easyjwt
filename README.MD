@@ -88,6 +88,7 @@ suddenly turn up at your API service and the tokens will be honoured...
 
 If you want your DRF views to authenticate in a browser window, ie. use the session created when you logged in
 with either the admin panel or your own login page then add the following to `REST_FRAMEWORK`.
+
 ```JSON
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
@@ -95,9 +96,10 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
     ),
 }
-`
+```
 
 Of course, this config should already contain;
+
 ```JSON
 "djangorestframework_remotejwt.authentication.RemoteJWTAuthentication",     # Use our service
 ```
