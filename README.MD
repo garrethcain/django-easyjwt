@@ -26,7 +26,7 @@ For example;
 with `/auth/` which gives some clean seperation.
 
 Eg;
-```
+```PYTHON
 /auth/token/
 /auth/token/refresh/
 /auth/token/verify/
@@ -57,7 +57,7 @@ Change DRFs default permission class to IsAuthenticated.
 Install package `drf_remotejwt` and add the following to the 
 INSTALLED_APPS;
 
-```
+```PYTHON
 'rest_framework', # because it is an API.
 'drf_remotejwt', # for the auth backend to access the auth-service.
 'custom_user.apps.CustomUserConfig', # so the local user model matches the auth
@@ -74,7 +74,7 @@ runs on `:8001`
 Instruct `REST_FRAMEWORK` that it must use the `drf-remotejwt` module for
 authentication.
 
-```JSON
+```PYTHON
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         'drf_remotejwt.authentication.RemoteJWTAuthentication',
@@ -82,7 +82,7 @@ REST_FRAMEWORK = {
 }
 ```
 
-```JSON
+```PYTHON
 REMOTE_JWT = {
     # leave these as the default.
     "AUTH_HEADER_TYPE": "Bearer",
@@ -122,7 +122,7 @@ then additionally add `rest_framework.authentication.SessionAuthentication` to
 `DEFAULT_AUTHENTICATION_CLASSES` inside `REST_FRAMEWORK`.
 
 Eg.
-```JSON
+```PYTHON
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         'drf_remotejwt.authentication.RemoteJWTAuthentication',
