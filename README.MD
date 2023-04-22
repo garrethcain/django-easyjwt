@@ -50,23 +50,38 @@ It would be unusual for HMAC keys to operate across services.
 ## Get Started
 
 Create a basic API Project. 
-Then create your first app to contain a view that returns something to indicate
+Then create your first app to contain a view that returns something indicating a
 success.
 Change DRFs default permission class to IsAuthenticated.
 
 Install package `drf_remotejwt` and add the following to the 
 INSTALLED_APPS;
 
-    1. 'rest_framework', # because it is an API.
-    2. 'drf_remotejwt', # for the auth backend to access the 
-        auth-service.
-    3. "custom_user.apps.CustomUserConfig", # because it's easier if your local 
-        user model matches the auth service's one.
+```
+'rest_framework', # because it is an API.
+'drf_remotejwt', # for the auth backend to access the auth-service.
+'custom_user.apps.CustomUserConfig', # so the local user model matches the auth
+```
 
 Add the following config to your settings.py and modify as appropriate.
 
-Assumptions: The auth-service runs on :8000 and the client-server (your API) 
+Assumptions: The auth-service runs on :8000 and the client-service (your API) 
 runs on `:8001`
+
+
+## Add this configuration to the client-service `settings.py`;
+
+Instruct `REST_FRAMEWORK` that it must use the `drf-remotejwt` module for
+authentication.
+
+```JSON
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        'drf_remotejwt.authentication.RemoteJWTAuthentication',
+    ),
+}
+```
+
 ```JSON
 REMOTE_JWT = {
     # leave these as the default.
@@ -88,35 +103,33 @@ REMOTE_JWT = {
 }
 ```
 
-The actually User object should be left the same as the Auth service's one and any additional data 
-should be contained in a related table.
+The actual User object should be left the same as the Auth service's one and any
+additional data should be contained in a related table.
 
-The local user will only be synced with the one in the Auth-Service at login. To ensure requests are as
-snappy as possible, any View auth confirmations will only validate the JWT, then use the local user object, if 
-it exists, otherwise a new one will be requested if none exists.
+The local user will only be synced with the one in the Auth-Service at login. To
+ensure requests are as snappy as possible, any View auth confirmations will only
+validate the JWT, then use the local user object, if it exists, otherwise a new
+one will be requested if none exists.
 
-Something to think about is that it's possible for the user to authenticate with the auth-service directly, then 
-suddenly turn up at your API service and the tokens will be honoured...
+Something to think about is that it's possible for the user to authenticate with
+the auth-service directly, then suddenly turn up at your API service and the
+tokens will be honoured...
 
 
-If you want your DRF views to authenticate in a browser window, ie. use the session created when you logged in
-with either the admin panel or your own login page then add the following to `REST_FRAMEWORK`.
+If you want your DRF views to authenticate in a browser window, ie. the session
+created when you logged in with either the admin panel or your own login page
+then additionally add `rest_framework.authentication.SessionAuthentication` to
+`DEFAULT_AUTHENTICATION_CLASSES` inside `REST_FRAMEWORK`.
 
+Eg.
 ```JSON
 REST_FRAMEWORK = {
-    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework.authentication.SessionAuthentication",
+        'drf_remotejwt.authentication.RemoteJWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ),
 }
 ```
-
-Of course, this config should already contain;
-
-```JSON
-"drf_remotejwt.authentication.RemoteJWTAuthentication",     # Use our service
-```
-
 
 ## TODO:
 1. I think the wrapper for the auth endpoints could be implemented better. Maybe a tidy class.
