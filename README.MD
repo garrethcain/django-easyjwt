@@ -20,7 +20,7 @@ Which all match the auth service exactly. You can decide on the URLs prefix path
 by modifying the config/urls.py file appropriately. 
 
 For example;
-`path('auth/', include("drf_remotejwt.urls"))` 
+`path('auth/', include("drf-remotejwt.urls"))` 
 
 ... will prefix the `/token/`, `/token/verify/`, and `/token/refresh/` endpoints 
 with `/auth/` which gives some clean seperation.
@@ -54,12 +54,12 @@ Then create your first app to contain a view that returns something indicating a
 success.
 Change DRFs default permission class to IsAuthenticated.
 
-Install package `drf_remotejwt` and add the following to the 
+Install package `drf-remotejwt` and add the following to the 
 INSTALLED_APPS;
 
 ```PYTHON
 'rest_framework', # because it is an API.
-'drf_remotejwt', # for the auth backend to access the auth-service.
+'drf-remotejwt', # for the auth backend to access the auth-service.
 'custom_user.apps.CustomUserConfig', # so the local user model matches the auth
 ```
 
@@ -77,7 +77,7 @@ authentication.
 ```PYTHON
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        'drf_remotejwt.authentication.RemoteJWTAuthentication',
+        'drf-remotejwt.authentication.RemoteJWTAuthentication',
     ),
 }
 ```
@@ -125,7 +125,7 @@ Eg.
 ```PYTHON
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        'drf_remotejwt.authentication.RemoteJWTAuthentication',
+        'drf-remotejwt.authentication.RemoteJWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),
 }
