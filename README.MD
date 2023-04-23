@@ -61,7 +61,6 @@ INSTALLED_APPS = [
     ...
     'rest_framework', # because it is an API.
     'remotejwt', # for the auth backend to access the auth-service.
-    'custom_user.apps.CustomUserConfig', # so the local user model matches the auth
     ...
 ]
 ```
@@ -117,6 +116,60 @@ one will be requested if none exists.
 Something to think about is that it's possible for the user to authenticate with
 the auth-service directly, then suddenly turn up at your API service and the
 tokens will be honoured...
+
+A custom user `remotejwt_user` has been include in the model and can be used in
+both the client-service and auth-service for convenience. To use it simply add
+the following config.
+
+```PYTHON
+INSTALLED_APPS = [
+    ...
+    'remotejwt_user.User',
+    ...
+]
+```
+
+```PYTHON
+AUTH_USER_MODEL = "remotejwt_user.User"
+```
+
+And then in your auth-service you can import the end points from the package
+like this;
+
+auth_service.urls.py
+```python
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path('auth/',
+         include(
+            [
+                path('', include('remotejwt.urls')),
+                path('', include('remotejwt_user.urls')),
+            ]
+        )
+    )
+]
+```
+
+or add them in yourself for a bit more control;
+
+```python
+from remotejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+    TokenVerifyView,
+)
+from remotejwt_user.views import TokenUserDetailView
+
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("auth/token/verify/", TokenVerifyView.as_view(), name="token_verify"),
+    path("auth/users/<int:pk>/", TokenUserDetailView.as_view(), name="user_detail"),
+]
+```
 
 
 If you want your DRF views to authenticate in a browser window, ie. the session
