@@ -127,11 +127,17 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         'drf-remotejwt.authentication.RemoteJWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
+        ...
     ),
 }
 ```
 
 ## TODO:
-1. I think the wrapper for the auth endpoints could be implemented better. Maybe a tidy class.
-2. There seems to be a bug with Simple-JWT which results in the Authorisation heading not being found.
-3. Write something that lets an admin user bring a user from the auth-service into our local service for when they need conf.
+1. I think the wrapper for the auth endpoints could be implemented better. Maybe
+    a tidy class.
+2. There seems to be a bug with Simple-JWT which results in the Authorisation
+    heading not being found.
+3. Write something that lets an admin user bring a user from the auth-service
+    into our local service for when they need conf.
+4. Implement a custom user model for convenience.
+5. Rename the module itself to remove the hyphen.
