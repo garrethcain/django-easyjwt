@@ -20,7 +20,7 @@ Which all match the auth service exactly. You can decide on the URLs prefix path
 by modifying the config/urls.py file appropriately. 
 
 For example;
-`path('auth/', include("drf-remotejwt.urls"))` 
+`path('auth/', include("remotejwt.urls"))` 
 
 ... will prefix the `/token/`, `/token/verify/`, and `/token/refresh/` endpoints 
 with `/auth/` which gives some clean seperation.
@@ -32,7 +32,7 @@ Eg;
 /auth/token/verify/
 ```
 
-All you need to is add the drf-remotejwt URLs to your API service that will be 
+All you need to is add the DRF-RemoteJWT URLs to your API service that will be 
 authing against the remote auth-service.
 
 You can't create users in the local client-service. If you retrieve a different
@@ -54,13 +54,16 @@ Then create your first app to contain a view that returns something indicating a
 success.
 Change DRFs default permission class to IsAuthenticated.
 
-Install package `drf-remotejwt` and add the following to the 
-INSTALLED_APPS;
+Install package `remotejwt` and add the following to the INSTALLED_APPS;
 
 ```PYTHON
-'rest_framework', # because it is an API.
-'drf-remotejwt', # for the auth backend to access the auth-service.
-'custom_user.apps.CustomUserConfig', # so the local user model matches the auth
+INSTALLED_APPS = [
+    ...
+    'rest_framework', # because it is an API.
+    'remotejwt', # for the auth backend to access the auth-service.
+    'custom_user.apps.CustomUserConfig', # so the local user model matches the auth
+    ...
+]
 ```
 
 Add the following config to your settings.py and modify as appropriate.
@@ -71,13 +74,13 @@ runs on `:8001`
 
 ## Add this configuration to the client-service `settings.py`;
 
-Instruct `REST_FRAMEWORK` that it must use the `drf-remotejwt` module for
+Instruct `REST_FRAMEWORK` that it must use the `remotejwt` module for
 authentication.
 
 ```PYTHON
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        'drf-remotejwt.authentication.RemoteJWTAuthentication',
+        'remotejwt.authentication.RemoteJWTAuthentication',
     ),
 }
 ```
@@ -125,7 +128,7 @@ Eg.
 ```PYTHON
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        'drf-remotejwt.authentication.RemoteJWTAuthentication',
+        'remotejwt.authentication.RemoteJWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
         ...
     ),
