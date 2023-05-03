@@ -601,11 +601,13 @@ production environment.
 
 ## Authorise and obtain a token pair
 
-`curl \
+```
+curl \
   -X POST \
   -H "Content-Type: application/json" \
   -d '{"email": "user@test.com", "password": "user-pass"}' \
-  http://127.0.0.1:8001/auth/token/`
+  http://127.0.0.1:8001/auth/token/
+```
 
 Will give you a response like;
 ```JSON
@@ -626,9 +628,11 @@ eg.
  
  Should return 'success'.
 
-`curl \
+```
+curl \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-  http://127.0.0.1:8001/api/test/`
+  http://127.0.0.1:8001/api/test/
+```
 
 The response should be;
 
@@ -639,22 +643,26 @@ The response should be;
 
 ## Refresh an expired token
 
-`curl \
+```
+curl \
   -X POST \
   -H "Content-Type: application/json" \
   -d '{"refresh": "${REFRESH_TOKEN"}}' \
-  http://127.0.0.1:8001/auth/token/refresh/`
+  http://127.0.0.1:8001/auth/token/refresh/
+```
 
 
 ## Verify the token is correct
  Performed by the client-service against the auth-service with every single
  JWT API request.
 
-`curl \
+```
+curl \
   -X POST \
   -H "Content-Type: application/json" \
   -d '{"token": "${REFRESH_TOKEN}"}' \
-  http://127.0.0.1:8001/auth/token/verify/`
+  http://127.0.0.1:8001/auth/token/verify/
+```
 
 
 ## Get the user details
@@ -662,6 +670,8 @@ This would be done inside the Auth handler when the user doesn't exist. There
 needs to be a valid user_id for the user associated with the access token being
 used. Ie. you can't view other user objectss by guessing an ID. Only your own.
 
-`curl \
+```
+curl \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-  http://localhost:8001/auth/users/{user_id}/`
+  http://localhost:8001/auth/users/{user_id}/
+```
