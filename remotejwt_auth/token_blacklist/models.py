@@ -20,9 +20,7 @@ class OutstandingToken(models.Model):
         #
         # Also see corresponding ticket:
         # https://github.com/encode/django-rest-framework/issues/705
-        abstract = (
-            "rest_framework_simplejwt.token_blacklist" not in settings.INSTALLED_APPS
-        )
+        abstract = "remotejwt_auth.token_blacklist" not in settings.INSTALLED_APPS
         ordering = ("user",)
 
     def __str__(self) -> str:
@@ -44,9 +42,7 @@ class BlacklistedToken(models.Model):
         #
         # Also see corresponding ticket:
         # https://github.com/encode/django-rest-framework/issues/705
-        abstract = (
-            "rest_framework_simplejwt.token_blacklist" not in settings.INSTALLED_APPS
-        )
+        abstract = "remotejwt_auth.token_blacklist" not in settings.INSTALLED_APPS
 
     def __str__(self) -> str:
         return f"Blacklisted token for {self.token.user}"

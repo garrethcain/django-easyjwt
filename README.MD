@@ -3,7 +3,7 @@
 This is a package for the implementation of a remote authentication backend 
 for Django apps, primarily meant for use with JWTs but supporting sessions as 
 well. Ie. elevated users could log into the Django `/admin/` once authenticated.
-The target is of course microservice ecosystems, with several APIs.
+The target is microservice ecosystems, with several independant services.
 
 The PyPi package can be found here: https://pypi.org/project/drf-remotejwt/
 
@@ -13,26 +13,29 @@ project.
 
 There are, at a minimum, two components required for this to work;
 
-1. An Auth-Service with SimpleJWT, to authenticate against,
-2. A Client-Service, with this package, users want to use.
+1. An Auth-Service, to authenticate against,
+2. A Client-Service, users want to use.
 
-The idea being that you can have any number of client-services using the 
+This package is made of of three sub-packages; RemoteJWT-Auth, RemoteJWT-Client, and RemoteJWT-User.
+With the Auth & Client used in the Auth and Client services and the User being used in both, or neither.
+
+The idea being that you can have any number of client-services using the same
 auth-service to validate login requests and your auth-service is behind some
 kind of private network. Ie. not public facing.
 
-This package is a wrapper for all the main components of the auth-service; eg.
+This package is a wrapper for all the main components of the auth-service and client-service; eg.
 
 * /token/ to obtain an access and a refresh token, 
     and create/update the local instance.
 * /token/refresh/ to refresh an expired access token.
 * /token/verify/ to confirm if a token is valid or not.
 
-The above urls in the client-service just proxy requests to the remote the
+The above urls in the client-service just proxy requests to the remote
 Auth-Service, configured in `settings.py` `REMOTE_JWT` dict, but creating a
 local user object if required.
 
 All that is needed is to add the DRF-RemoteJWT URLs to your client-service. The 
-auth-service remains mostly vanilla asside from maybe using a custom User model,
+auth-service remains mostly vanilla aside from maybe using a custom User model,
 include in this package as well, for convenience.
 
 You can't create users in the local client-service! 
@@ -140,7 +143,7 @@ Again, your terminal should look something like this;
 
 Install the packages we're going to use.
 ```
-$ pip install django django_rest_framework djangorestframework-simplejwt drf-remotejwt
+$ pip install django django_rest_framework drf-remotejwt
 ```
 
 Open `config/settings.py` and add the apps we'll be using to `INSTALLED_APPS`;
@@ -149,7 +152,7 @@ Open `config/settings.py` and add the apps we'll be using to `INSTALLED_APPS`;
 INSTALLED_APPS = [
     ...
     'rest_framework',
-    'rest_framework_simplejwt',
+    'remotejwt_auth',
     'remotejwt_user',
 ]
 ```
@@ -170,15 +173,15 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.SessionAuthentication",
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "remotejwt_auth.authentication.JWTAuthentication",
     ),
 }
 ```
 
-In order to use Rest Framework SimpleJWT you will also need to add some
-configuration for it.
+In order to use RemoteJWT-Auth you will also need to add some configuration for it.
+
 ```PY
-SIMPLE_JWT = {
+REMOTE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": False,
@@ -193,10 +196,10 @@ SIMPLE_JWT = {
     "LEEWAY": 0,
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
-    "USER_AUTHENTICATION_RULE": "rest_framework_simplejwt.authentication.default_user_authentication_rule",
-    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    "USER_AUTHENTICATION_RULE": "remotejwt_auth.authentication.default_user_authentication_rule",
+    "AUTH_TOKEN_CLASSES": ("remotejwt_auth.tokens.AccessToken",),
     "TOKEN_TYPE_CLAIM": "token_type",
-    "TOKEN_USER_CLASS": "rest_framework_simplejwt.models.TokenUser",
+    "TOKEN_USER_CLASS": "remotejwt_auth.models.TokenUser",
     "JTI_CLAIM": "jti",
     "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
     "SLIDING_TOKEN_LIFETIME": timedelta(minutes=5),
@@ -215,7 +218,7 @@ $ python manage.py makemigrations
 ```
 
 Migrate to create the database. An SQLite db is fine for the example. In a
-production environment you'd use something a bit more appropriate.
+production environment you'd use something a bit more appropriate like PostreSQL or DynamoDB.
 ```
 $ python manage.py migrate
 ```
@@ -267,31 +270,19 @@ $ deactivate
 The final step is to configure the Urls. So open `config/urls.py` and add the
 following.
 
-Import the SimpleJWT views;
-```py
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-    TokenVerifyView,
-)
-```
-
 Then expost the paths to the JWT endpoints and a user view which is where the
 client-service will download the user from.
 ```py
 urlpatterns = [
     ...
-    path("auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
-    path("auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
-    path("auth/token/verify/", TokenVerifyView.as_view(), name="token_verify"),
-
-    path('auth/', include('remotejwt_user.urls')),
+    path('auth/', include('remotejwt_auth.urls')),  # gives us access to the auth views.
+    path('auth/', include('remotejwt_user.urls')),  # gives us access to the users views.
 ]
 ```
 
 And that's it for the Auth-Service. It doesn't need any views or serializers.
-Everything is handled by SimpleJWT and Django's OEM methods. This service is
-super light to run and will handle all requests with easy.
+Everything is handled by RemoteJWT-Auth and Django's OEM methods. This service is
+super light to run and will handle many requests with ease.
 
 ---
 ## Create a Client-Service
@@ -408,7 +399,7 @@ and add the following lines to `INSTALLED_APPS`;
 INSTALLED_APPS = [
     ...
     'rest_framework',
-    'remotejwt',
+    'remotejwt_client',
     'remotejwt_user',
 ]
 ```
@@ -429,7 +420,7 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ),
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "remotejwt.authentication.RemoteJWTAuthentication",     # Use our service
+        "remotejwt_client.authentication.RemoteJWTAuthentication",     # Use our service
         "rest_framework.authentication.SessionAuthentication",  # Maybe the user has a session...
     ),
 }
@@ -440,7 +431,7 @@ Let Django know that we want to use a custom authentication backend.
 # implement out or custom backend for Admin and other views.
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',    # Default, check the local DB.
-    'remotejwt.authentication.ModelBackend'         # Our override to check the remote service.
+    'remotejwt_client.authentication.ModelBackend'         # Our override to check the remote service.
 ]
 ```
 
@@ -472,7 +463,7 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('auth/', include("remotejwt.urls"))
+    path('auth/', include("remotejwt_client.urls"))
 ]
 ```
 Don't forget the `include` import.
@@ -534,7 +525,7 @@ from test_app.views import TestView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('auth/', include("remotejwt.urls")),
+    path('auth/', include("remotejwt_client.urls")),
     path('api/test/', TestView.as_view()),
 ]
 ```
@@ -563,7 +554,7 @@ As mentioned earlier, we have two services and auth-service and a client-service
 `:8001`. 
 
 **This is important because it's how we configure the RemoteJWT's configuration
-in the client-service.**
+in the auth-service and client-service.**
 
 You'll need two terminals. One in auth-service/ and one in client-service/ both
 with the respective virtual environments loaded and then a third one to execute
