@@ -21,6 +21,7 @@ class TokenManager:
     A tidy class to abstract some of the token
     auth, verification, and refreshing from the views.
     """
+
     username_field = get_user_model().USERNAME_FIELD
 
     def __request(self, path, payload) -> dict:
@@ -45,10 +46,10 @@ class TokenManager:
                 "Authentication Service Timed Out."
             ) from e
 
-        content_type = response.headers.get('Content-Type')
-        if content_type != 'application/json':
+        content_type = response.headers.get("Content-Type")
+        if content_type != "application/json":
             raise exceptions.AuthenticationFailed(
-                "Authentication Service response has incorrect content-type. " \
+                "Authentication Service response has incorrect content-type. "
                 f"Expected application/json but received {content_type}"
             )
 
@@ -64,9 +65,7 @@ class TokenManager:
         Verifies a token against the remote Auth-Service.
         """
         path = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_VERIFY_PATH"]
-        payload = {
-            "token": token
-        }
+        payload = {"token": token}
         return self.__request(path, payload)
 
     def refresh(self, refresh) -> dict:
@@ -75,9 +74,7 @@ class TokenManager:
         against the remote Auth-Service.
         """
         path = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_REFRESH_PATH"]
-        payload = {
-            "refresh": refresh
-        }
+        payload = {"refresh": refresh}
 
         return self.__request(path, payload)
 
@@ -89,7 +86,7 @@ class TokenManager:
         path = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_TOKEN_PATH"]
         payload = {
             self.username_field: kwargs[self.username_field],
-            "password": kwargs.get("password")
+            "password": kwargs.get("password"),
         }
         tokens = self.__request(path, payload)
 
@@ -106,9 +103,11 @@ class TokenManager:
         return (json.loads(header_str), json.loads(payload_str), signature)
 
     def __create_or_update_user(self, tokens):
-        header_dict, payload_dict, signature = self.__parse_auth_string(tokens["access"])
+        header_dict, payload_dict, signature = self.__parse_auth_string(
+            tokens["access"]
+        )
         user_id = payload_dict[settings.REMOTE_JWT["USER_ID_CLAIM"]]
-        auth_header = settings.REMOTE_JWT['AUTH_HEADER_NAME']
+        auth_header = settings.REMOTE_JWT["AUTH_HEADER_NAME"]
         auth_header_type = settings.REMOTE_JWT["AUTH_HEADER_TYPE"]
         root_url = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_URL"]
         path = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_USER_PATH"].format(
@@ -136,17 +135,18 @@ class TokenManager:
                 ) from e
         if response.status_code != 200:
             raise exceptions.AuthenticationFailed(response.json())
-        
+
         user_dict = response.json()
         user_id = user_dict.pop("id")
         try:
             user, created = User.objects.update_or_create(
-                id=user_id,
-                defaults={**user_dict}
+                id=user_id, defaults={**user_dict}
             )
         except IntegrityError as e:
             # This is most likely caused by having two different User models.
-            # Eg. a Custom User model in Auth-Service and a vanilla User in 
+            # Eg. a Custom User model in Auth-Service and a vanilla User in
             # your client project.
-            raise exceptions.AuthenticationFailed("Integrity error with user from Authentication Service. Different User models?") from e
+            raise exceptions.AuthenticationFailed(
+                "Integrity error with user from Authentication Service. Different User models?"
+            ) from e
         return (user, created)

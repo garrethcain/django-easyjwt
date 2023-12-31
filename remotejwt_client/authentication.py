@@ -32,14 +32,14 @@ class ModelBackend(authentication.BaseAuthentication):
             return User.object.get(pk=user_id)
         except User.DoesNotExist:
             return None
-        
+
     def _get_user_by_username(self, username):
         try:
             user = User.objects.get(email=username)
         except User.DoesNotExist:
             user = None
         return user
-    
+
     def get_user(self, user_id):
         try:
             return User.objects.get(pk=user_id)
@@ -48,7 +48,6 @@ class ModelBackend(authentication.BaseAuthentication):
 
 
 class RemoteJWTAuthentication(authentication.BaseAuthentication):
-
     def __verify_token(self, jwt: str) -> Tuple[bool, dict]:
         root_url = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_URL"]
         path = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_VERIFY_PATH"]
@@ -74,8 +73,8 @@ class RemoteJWTAuthentication(authentication.BaseAuthentication):
                 "Authentication Service Timed Out."
             ) from e
 
-        content_type = response.headers.get('Content-Type')
-        if content_type != 'application/json':
+        content_type = response.headers.get("Content-Type")
+        if content_type != "application/json":
             raise exceptions.AuthenticationFailed(
                 f"Authentication Service response has incorrect content-type. Expected application/json but received {content_type}"
             )
@@ -142,7 +141,7 @@ class RemoteJWTAuthentication(authentication.BaseAuthentication):
         """
         # Is the user trying to actually use the HTTP Authorization header?
         auth_header = self.__get_authorization_header(request)
-    
+
         if auth_header is None:
             # Might not be a request for this service.
             return None
@@ -159,7 +158,7 @@ class RemoteJWTAuthentication(authentication.BaseAuthentication):
             msg = "Malformed Authorization Header"
             raise exceptions.AuthenticationFailed(msg) from e
 
-        # If they successfully specified a method but its not AUTH_HEADER_TYPE, pass 
+        # If they successfully specified a method but its not AUTH_HEADER_TYPE, pass
         # through, could be Basic auth or similar
         if auth_method != settings.REMOTE_JWT["AUTH_HEADER_TYPE"]:
             return None
