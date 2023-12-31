@@ -7,6 +7,9 @@ The target is microservice ecosystems, with several independant services.
 
 The PyPi package can be found here: https://pypi.org/project/drf-remotejwt/
 
+ACKNOWLEDGEMENTS
+This package is heavily based on Djangorestframework_simplejwt and heavily influenced by SimpleJWT.
+
 This package is used in the example 
 [auth-client-service-example](https://github.com/garrethcain/auth-client-service-example)
 project. 
