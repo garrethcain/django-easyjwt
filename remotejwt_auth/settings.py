@@ -8,7 +8,7 @@ from rest_framework.settings import APISettings as _APISettings
 
 from .utils import format_lazy
 
-USER_SETTINGS = getattr(settings, "SIMPLE_JWT", None)
+USER_SETTINGS = getattr(settings, "REMOTE_JWT", None)
 
 DEFAULTS = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
