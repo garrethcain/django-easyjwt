@@ -8,9 +8,12 @@ from base64 import b64decode
 
 from rest_framework import generics, exceptions
 
+from django.utils.module_loading import import_string
 from django.conf import settings
 from django.db import IntegrityError
 from django.contrib.auth import get_user_model
+
+from .settings import api_settings
 
 
 User = get_user_model()
@@ -139,14 +142,35 @@ class TokenManager:
         user_dict = response.json()
         user_id = user_dict.pop("id")
         try:
-            user, created = User.objects.update_or_create(
-                id=user_id, defaults={**user_dict}
-            )
+            # user, created = User.objects.update_or_create(
+            #     id=user_id, defaults={**user_dict}
+            # )
+            # Use a custom serializer?
+            try:
+                print(api_settings.USER_MODEL_SERIALIZER)
+                serializer = import_string(api_settings.USER_MODEL_SERIALIZER)
+                s = serializer(
+                    data=user_dict,
+                    context={"user_id_field": settings.REMOTE_JWT["USER_ID_CLAIM"]},
+                )
+                print(s)
+                created = s.is_valid(raise_exception=True)
+                if not created:
+                    raise exceptions.AuthenticationFailed(
+                        f"Integrity error with USER_MODEL_SERIALIZER: {api_settings.USER_MODEL_SERIALIZER} "
+                        "failed to parse the received payload."
+                    )
+                user = s.save()
+            except ImportError:
+                msg = f"Could not import serializer '{api_settings.USER_MODEL_SERIALIZER}'"
+                raise ImportError(msg)
+
         except IntegrityError as e:
             # This is most likely caused by having two different User models.
             # Eg. a Custom User model in Auth-Service and a vanilla User in
             # your client project.
             raise exceptions.AuthenticationFailed(
                 "Integrity error with user from Authentication Service. Different User models?"
+                f"{e}"
             ) from e
         return (user, created)
