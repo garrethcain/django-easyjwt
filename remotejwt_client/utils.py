@@ -147,13 +147,11 @@ class TokenManager:
             # )
             # Use a custom serializer?
             try:
-                print(api_settings.USER_MODEL_SERIALIZER)
                 serializer = import_string(api_settings.USER_MODEL_SERIALIZER)
                 s = serializer(
                     data=user_dict,
                     context={"user_id_field": settings.REMOTE_JWT["USER_ID_CLAIM"]},
                 )
-                print(s)
                 created = s.is_valid(raise_exception=True)
                 if not created:
                     raise exceptions.AuthenticationFailed(
