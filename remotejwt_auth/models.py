@@ -20,6 +20,7 @@ class TokenUser:
     stateless user objects which are backed by validated tokens.
     """
 
+
     # User is always active since we'll will never issue a token for an
     # inactive user
     is_active = True
