@@ -669,3 +669,71 @@ curl \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   http://localhost:8001/auth/users/{user_id}/
 ```
+
+
+# Exta Data
+
+There may be situations where you want the Auth-Service to include additional User information that is passed
+down to the Client-Services. One scenario for this may be having a centralised auth service, but customer's
+subscribe to the client services individually; this means a user may have access to service A but not service
+B.
+
+This can easily be achieved by specifying and creating custom User Model Serializers. The config key for this
+is "USER_MODEL_SERIALIZER" where you specify a serializer to use when parsing the User data returned from the
+Auth-Service, eg. "custom.serializers.CustomUserModelSerialzer".
+
+The Auth-Service serializer needs to expose ALL the data that will be needed by ALL Client-services. A Client-
+service needs to only parse the data relevant to it.
+I.e. it is possible to Client-services to have different custom serializers only recording the fields they
+individually care about.
+
+```python
+class CustomUserFieldSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUserField
+        fields = ("field1", "field2", "field3")
+```
+
+```python
+class CustomUserModelSerializer(serializers.ModelSerializer):
+    customuserfield = CustomUserFieldSerializer()
+
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "first_name",
+            "email",
+            "last_name",
+            "date_joined",
+            "last_login",
+            "is_active",
+            "is_staff",
+            "is_superuser",
+            "customuserfield",
+        )
+        read_only_fields = ("date_joined", "last_login", "is_staff", "is_superuser")
+
+    def create(self, validated_data):
+        """
+        DRF doesn't support nested serializers so we need to create the nested
+        objects manually.
+        """
+
+        user_id = validated_data.pop(USERNAME_FIELD)
+        customuserfield = validated_data.pop("customuserfield")
+        user, _ = User.objects.get_or_create(email=user_id, defaults=validated_data)
+        # Delete stale customuserfield data.
+        # It's stale because this payload is the latest truth.
+        user.customuserfield.delete()
+
+        serializer = CustomUserFieldSerializer(data=customuserfield)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user=user)
+
+        return user
+```
+
+Because, in this example, the extra data is being exposed as a nested serializer, you are required to override
+the serializers .create() method and handle the nested data yourself. This give the flexability to only record
+the data relevant to the service.

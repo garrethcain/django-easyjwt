@@ -151,8 +151,8 @@ class User(AbstractUser):
     # We dont want to use username as we will be using email as login
     # inorder to not use username we say username = None
     username = None  # type: ignore
-    first_name = models.CharField(_("first name"), max_length=150)
-    last_name = models.CharField(_("last name"), max_length=150)
+    first_name = models.CharField(_("first name"), max_length=150, blank=True)
+    last_name = models.CharField(_("last name"), max_length=150, blank=True)
     location = models.TextField(null=True, blank=True)
     phone = models.CharField(max_length=15, blank=True, null=True)
     # We are inheriting AbstractUser and email is already defined there
@@ -161,7 +161,7 @@ class User(AbstractUser):
     email = models.EmailField(
         _("email address"),
         help_text="Please Enter valid Email Address",
-        unique=True,
+        # unique=True,
         error_messages={
             "unique": _("This email already exists."),
         },
@@ -194,6 +194,9 @@ class User(AbstractUser):
     class Meta(AbstractUser.Meta):
         swappable = "AUTH_USER_MODEL"
         db_table = "user"
+        constraints = [
+            models.UniqueConstraint(fields=["email"], name="user_email_type_unique")
+        ]
 
     def __str__(self):
         return self.email
