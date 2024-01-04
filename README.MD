@@ -445,7 +445,7 @@ just aiming for the absolute minimal working example.
 
 ```py
 REMOTE_JWT = {
-    "AUTH_HEADER_TYPE": "Bearer",
+    "AUTH_HEADER_TYPES": ("Bearer", ),
     "AUTH_HEADER_NAME": "Authorization",
     "REMOTE_AUTH_SERVICE_URL": "http://127.0.0.1:8000", # Where do we reach the Auth-Service
     "REMOTE_AUTH_SERVICE_TOKEN_PATH": "/auth/token/", # The path to login and retrieve a token

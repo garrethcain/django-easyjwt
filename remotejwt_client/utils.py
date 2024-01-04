@@ -111,13 +111,13 @@ class TokenManager:
         )
         user_id = payload_dict[settings.REMOTE_JWT["USER_ID_CLAIM"]]
         auth_header = settings.REMOTE_JWT["AUTH_HEADER_NAME"]
-        auth_header_type = settings.REMOTE_JWT["AUTH_HEADER_TYPE"]
+        auth_header_types = settings.REMOTE_JWT["AUTH_HEADER_TYPES"]
         root_url = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_URL"]
         path = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_USER_PATH"].format(
             user_id=user_id
         )
         headers: dict[str, str] = {
-            auth_header: f"{auth_header_type} {tokens.get('access')}",
+            auth_header: f"{auth_header_types[0]} {tokens.get('access')}",
             "content-type": "application/json",
         }
 
