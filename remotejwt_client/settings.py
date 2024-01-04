@@ -7,7 +7,7 @@ from rest_framework.settings import APISettings as _APISettings
 USER_SETTINGS = getattr(settings, "REMOTE_JWT", None)
 
 DEFAULTS = {
-    "AUTH_HEADER_TYPE": "Bearer",
+    "AUTH_HEADER_TYPES": ("Bearer",),
     "AUTH_HEADER_NAME": "Authorization",  # I think this config is broken in this ver of the Simple-JWT lib.
     "REMOTE_AUTH_SERVICE_URL": "http://127.0.0.1:8000",  # Were do we reach the Auth-Service
     "REMOTE_AUTH_SERVICE_TOKEN_PATH": "/auth/token/",  # The path to login and retrieve a token

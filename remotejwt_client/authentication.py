@@ -79,6 +79,7 @@ class RemoteJWTAuthentication(authentication.BaseAuthentication):
                 f"Authentication Service response has incorrect content-type. Expected application/json but received {content_type}"
             )
 
+        # TODO: Fix this up.
         if response.status_code != 200:
             resp_code = response.status_code
             resp_dict = response.json()
@@ -93,13 +94,13 @@ class RemoteJWTAuthentication(authentication.BaseAuthentication):
         return (json.loads(header_str), json.loads(payload_str), signature)
 
     def __get_user_details(self, user_id: int, jwt: str) -> dict:
-        auth_header_type = settings.REMOTE_JWT["AUTH_HEADER_TYPE"]
+        auth_header_types = settings.REMOTE_JWT["AUTH_HEADER_TYPES"]
         root_url = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_URL"]
         path = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_USER_PATH"].format(
             user_id=user_id
         )
         headers: dict[str, str] = {
-            "Authorization": f"Bearer {jwt}",
+            "Authorization": f"{auth_header_types[0]} {jwt}",
             "content-type": "application/json",
         }
         request = requests.Request("GET", f"{root_url}{path}", data={}, headers=headers)
@@ -153,14 +154,15 @@ class RemoteJWTAuthentication(authentication.BaseAuthentication):
             raise exceptions.AuthenticationFailed(msg)
         # Except the case where the auth string is malformed, doesn't fit into the form <Method> <String>
         try:
-            auth_method, auth_string = auth_header.split(" ")
+            auth_method, auth_string = auth_header.split(":")
+            auth_string = auth_string.strip()
         except ValueError as e:
             msg = "Malformed Authorization Header"
             raise exceptions.AuthenticationFailed(msg) from e
 
         # If they successfully specified a method but its not AUTH_HEADER_TYPE, pass
         # through, could be Basic auth or similar
-        if auth_method != settings.REMOTE_JWT["AUTH_HEADER_TYPE"]:
+        if auth_method not in settings.REMOTE_JWT["AUTH_HEADER_TYPES"]:
             return None
 
         token_verified, message = self.__verify_token(jwt=auth_string)
