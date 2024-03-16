@@ -1,4 +1,4 @@
-# DJango-EasyJWT
+# Django-EasyJWT
 
 This is a package for the implementation of a remote authentication backend 
 for Django apps, primarily meant for use with JWTs, also supporting sessions as 
