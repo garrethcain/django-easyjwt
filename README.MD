@@ -1,17 +1,18 @@
-# DRF-RemoteJWT
+# DJango-EasyJWT
 
 This is a package for the implementation of a remote authentication backend 
-for Django apps, primarily meant for use with JWTs but supporting sessions as 
+for Django apps, primarily meant for use with JWTs, also supporting sessions as 
 well. Ie. elevated users could log into the Django `/admin/` once authenticated.
-The target is microservice ecosystems, with several independant services.
+The target is microservice ecosystems, with several independant services all
+authenticating against a central authentication services, or cas.
 
-The PyPi package can be found here: https://pypi.org/project/drf-remotejwt/
+The PyPi package can be found here: https://pypi.org/project/django-easyjwt
 
 ACKNOWLEDGEMENTS
 This package is heavily based on Djangorestframework_simplejwt and heavily influenced by SimpleJWT.
 
 This package is used in the example 
-[auth-client-service-example](https://github.com/garrethcain/auth-client-service-example)
+[auth-client-service-example](https://github.com/garrethcain/django-easyjwt-example)
 project. 
 
 There are, at a minimum, two components required for this to work;
@@ -20,11 +21,12 @@ There are, at a minimum, two components required for this to work;
 2. A Client-Service, users want to use.
 
 This package is made of of three sub-packages; RemoteJWT-Auth, RemoteJWT-Client, and RemoteJWT-User.
-With the Auth & Client used in the Auth and Client services and the User being used in both, or neither.
+With the Auth & Client used in the separate Auth and Client services and the User being used in both,
+or neither.
 
 The idea being that you can have any number of client-services using the same
 auth-service to validate login requests and your auth-service is behind some
-kind of private network. Ie. not public facing.
+kind of private network and not public facing.
 
 This package is a wrapper for all the main components of the auth-service and client-service; eg.
 
@@ -37,7 +39,7 @@ The above urls in the client-service just proxy requests to the remote
 Auth-Service, configured in `settings.py` `REMOTE_JWT` dict, but creating a
 local user object if required.
 
-All that is needed is to add the DRF-RemoteJWT URLs to your client-service. The 
+All that is needed is to add the Django-EasyJWT URLs to your client-service. The 
 auth-service remains mostly vanilla aside from maybe using a custom User model,
 include in this package as well, for convenience.
 
@@ -146,7 +148,7 @@ Again, your terminal should look something like this;
 
 Install the packages we're going to use.
 ```
-$ pip install django django_rest_framework drf-remotejwt
+$ pip install django django_rest_framework django_easyjwt
 ```
 
 Open `config/settings.py` and add the apps we'll be using to `INSTALLED_APPS`;
@@ -300,7 +302,7 @@ cd ..
 
 We're going to perform the same steps for the client-service that we did for the
 auth-service. You should recognise most of this. The main difference is that
-this time we'll be using `drf-remotejwt` and not creating any local users.
+this time we'll be using `django_easyjwt` and not creating any local users.
 
 
 Create a temporary virtual environment to install django so we can create a
@@ -393,7 +395,7 @@ Again, your terminal should look something like this;
 Install the packages we're going to use. We don't need `SimpleJWT` this time
 because authentication is handled by the remote auth-service.
 ```
-$ pip install django django_rest_framework drf-remotejwt
+$ pip install django django_rest_framework django_easyjwt
 ```
 
 We need to let Django know about the apps we'll be using, so open `settings.py`
@@ -416,7 +418,7 @@ AUTH_USER_MODEL = "remotejwt_user.User"
 
 Add some configuration for Djang Rest Framework. Change the default behaviour
 for all endpoints to require authentication. Then we override the default
-authentication classes with the ones from `DRF-RemoteJWT`.
+authentication classes with the ones from `Django-EasyJWT`.
 ```py
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
@@ -438,7 +440,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 ```
 
-Time to configure `DRF-RemoteJWT`. For this example example we're going to run
+Time to configure `Django-EasyJWT`. For this example example we're going to run
 the auth-server on `:8000` and the client-service on `:8001`. Most of this conf
 should be handled through environmental variables in a real project. But we're
 just aiming for the absolute minimal working example.
@@ -737,3 +739,25 @@ class CustomUserModelSerializer(serializers.ModelSerializer):
 Because, in this example, the extra data is being exposed as a nested serializer, you are required to override
 the serializers .create() method and handle the nested data yourself. This give the flexability to only record
 the data relevant to the service.
+
+
+# Permissions
+Now that some custom data is being sent along witht the login request, we need to do something with it that 
+allows a user to use one service and not another. The most straight forward solution would be to name the
+fields being passed as the services needing access and then use a permission class (for DRF only) to reject
+access if they're not authed for this particular service.
+
+
+```python
+from rest_framework import permissions
+
+
+class CustomAccessPermission(permissions.BasePermission):
+    message = "You do not have permission to this service"
+
+    def has_object_permission(self, request, view, obj):
+        return request.user is not None
+
+    def has_permission(self, request, view):
+        return request.user.customuserfield.field1 == "field1 value"
+```
