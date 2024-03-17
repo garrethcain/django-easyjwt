@@ -1,8 +1,6 @@
-name: Publish Python Package
+name: Publish Python 🐍 distribution 📦 to PyPI and TestPyPI
 
-on:
-  release:
-    types: [created]
+on: push
 
 jobs:
   build:
