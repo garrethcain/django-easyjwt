@@ -1,3 +1,9 @@
+name: Publish Python Package
+
+on:
+  release:
+    types: [created]
+
 jobs:
   build:
     name: Build distribution 📦
