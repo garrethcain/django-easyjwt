@@ -1,20 +1,15 @@
 import json
-import requests
-import json
-import requests
-
-from typing import Tuple
 from base64 import b64decode
+from typing import Tuple
 
-from rest_framework import generics, exceptions
-
-from django.utils.module_loading import import_string
+import requests
 from django.conf import settings
-from django.db import IntegrityError
 from django.contrib.auth import get_user_model
+from django.db import IntegrityError
+from django.utils.module_loading import import_string
+from rest_framework import exceptions
 
 from .settings import api_settings
-
 
 User = get_user_model()
 
@@ -137,20 +132,21 @@ class TokenManager:
                     "Authentication Service Timed Out."
                 ) from e
         if response.status_code != 200:
-            raise exceptions.AuthenticationFailed(response.json())
+            raise exceptions.AuthenticationFailed(response.text)
 
         user_dict = response.json()
         user_id = user_dict.pop("id")
         try:
-            # user, created = User.objects.update_or_create(
-            #     id=user_id, defaults={**user_dict}
-            # )
             # Use a custom serializer?
             try:
+                print("&&&&&")
                 serializer = import_string(api_settings.USER_MODEL_SERIALIZER)
                 s = serializer(
                     data=user_dict,
-                    context={"user_id_field": settings.REMOTE_JWT["USER_ID_CLAIM"]},
+                    context={
+                        "user_id_field": settings.REMOTE_JWT["USER_ID_CLAIM"],
+                        "raw_data": user_dict,
+                    },
                 )
                 created = s.is_valid(raise_exception=True)
                 if not created:
@@ -168,7 +164,7 @@ class TokenManager:
             # Eg. a Custom User model in Auth-Service and a vanilla User in
             # your client project.
             raise exceptions.AuthenticationFailed(
-                "Integrity error with user from Authentication Service. Different User models?"
+                "Integrity error with user from Authentication Service. Different User models? "
                 f"{e}"
             ) from e
         return (user, created)

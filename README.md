@@ -15,6 +15,16 @@ This package is used in the example
 [auth-client-service-example](https://github.com/garrethcain/django-easyjwt-example)
 project. 
 
+# Change Log
+
+2024-03-19 - 4.0.2
+    - removed dependency from remotejwt_user migrations.
+    - added raw_data to the context var of the custom serializer so custom data stripped by the serializer
+      can still be accessed.
+    - Changed the exception raise for a remote user model to show text and not try parse to json.
+
+# How To
+
 There are, at a minimum, two components required for this to work;
 
 1. An Auth-Service, to authenticate against,
