@@ -139,7 +139,6 @@ class TokenManager:
         try:
             # Use a custom serializer?
             try:
-                print("&&&&&")
                 serializer = import_string(api_settings.USER_MODEL_SERIALIZER)
                 s = serializer(
                     data=user_dict,
