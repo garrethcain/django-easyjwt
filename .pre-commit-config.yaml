@@ -1,33 +1,56 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
 default_language_version:
   python: python3.10
 
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.8
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.2.0
     hooks:
-      - id: ruff
-        types: [python]
-
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.971
-    hooks:
-      - id: mypy
-        types: [python]
-        args: [--strict]
-        additional_dependencies: ['types-requests']
-
-  - repo: https://github.com/ambv/black
-    rev: 22.8.0
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+  - repo: https://github.com/psf/black
+    rev: 24.4.0
     hooks:
       - id: black
-        types: [python]
-        args: [--check]
-
-  - repo: local
+        args: ['-l 110']
+        exclude: ^.*\b(migrations)\b.*$
+  # - repo: https://github.com/pycqa/isort
+  #   rev: 5.12.0
+  #   hooks:
+  #   - id: isort
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.0.285
     hooks:
-      - id: isort
-        name: isort
-        entry: isort
-        language: system
-        types: [python]
-        args: [--check,--profile=black]
+      - id: ruff
+        alias: autoformat
+        args: [--fix]
+        exclude: (migrations)
+  - repo: https://github.com/adamchainz/django-upgrade
+    rev: 1.16.0
+    hooks:
+      - id: django-upgrade
+        args: [--target-version, '5.0']
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.9.0
+    hooks:
+      - id: mypy
+        args:
+          [
+            --no-strict-optional,
+            --ignore-missing-imports,
+            '--config=setup.cfg',
+          ]
+        exclude: 'gw_config_proxy_lambd|[a-zA-Z]*/[a-zA-Z]*/(migrations|commands)/(.)*'
+        additional_dependencies:
+          [
+            'djangorestframework-stubs[compatible-mypy]',
+            'django-stubs[compatible-mypy]',
+            'django-stubs-ext',
+            'dj_database_url',
+            'environs',
+            'djangorestframework',
+            'types-python-dateutil',
+          ]

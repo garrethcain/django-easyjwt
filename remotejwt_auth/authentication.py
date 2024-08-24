@@ -151,7 +151,7 @@ class JWTStatelessUserAuthentication(JWTAuthentication):
     token provided in a request header without performing a database lookup to obtain a user instance.
     """
 
-    def get_user(self, validated_token: Token) -> AuthUser:
+    def get_user(self, validated_token: Token) -> AuthUser:  # type: ignore
         """
         Returns a stateless user object which is backed by the given validated
         token.
@@ -159,7 +159,7 @@ class JWTStatelessUserAuthentication(JWTAuthentication):
         if api_settings.USER_ID_CLAIM not in validated_token:
             # The TokenUser class assumes tokens will have a recognizable user
             # identifier claim.
-            raise InvalidToken(_("Token contained no recognizable user identification"))
+            raise InvalidToken("Token contained no recognizable user identification")
 
         return api_settings.TOKEN_USER_CLASS(validated_token)
 

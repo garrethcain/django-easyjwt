@@ -24,8 +24,12 @@ class ModelBackend(authentication.BaseAuthentication):
         a user from the remote authentication service.
         """
         tokenmanager = TokenManager()
-        _ = tokenmanager.authenticate(email=username, password=password)
-        return self._get_user_by_username(username=username)
+        try:
+            _ = tokenmanager.authenticate(email=username, password=password)
+            return self._get_user_by_username(username=username)
+        except exceptions.AuthenticationFailed as e:
+            print("Authentication exception:", e)
+        return None
 
     def _get_user_by_id(self, user_id):
         try:
@@ -84,7 +88,7 @@ class RemoteJWTAuthentication(authentication.BaseAuthentication):
             resp_code = response.status_code
             resp_dict = response.json()
 
-        return (resp_code, resp_dict)
+        return (resp_code == 200, resp_dict)
 
     def __parse_auth_string(self, auth_string: str) -> Tuple[dict, dict, str]:
         header, payload, signature = auth_string.split(".")
@@ -177,6 +181,7 @@ class RemoteJWTAuthentication(authentication.BaseAuthentication):
         try:
             user = User.objects.get(id=user_id)
         except User.DoesNotExist as e:
+            print("User does not exist:", str(e))
             user_details = self.__get_user_details(user_id, auth_string)
             user = User.objects.create(**user_details)
         return (user, None)
