@@ -53,4 +53,5 @@ repos:
             'environs',
             'djangorestframework',
             'types-python-dateutil',
+            'types-requests',
           ]

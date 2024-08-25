@@ -137,27 +137,30 @@ class TokenManager:
         user_dict = response.json()
         user_id = user_dict.pop("id")
         try:
-            # Use a custom serializer?
-            try:
-                serializer = import_string(api_settings.USER_MODEL_SERIALIZER)
-                s = serializer(
-                    data=user_dict,
-                    context={
-                        "user_id_field": settings.REMOTE_JWT["USER_ID_CLAIM"],
-                        "raw_data": user_dict,
-                    },
+            payload = {self.username_field: user_dict[self.username_field]}
+            existing_user = User.objects.get(**payload)
+        except User.DoesNotExist:
+            existing_user = None
+        try:
+            serializer = import_string(api_settings.USER_MODEL_SERIALIZER)
+            s = serializer(
+                existing_user,
+                data=user_dict,
+                context={
+                    "user_id_field": settings.REMOTE_JWT["USER_ID_CLAIM"],
+                    "raw_data": user_dict,
+                },
+            )
+            created = s.is_valid(raise_exception=True)
+            if not created:
+                raise exceptions.AuthenticationFailed(
+                    f"Integrity error with USER_MODEL_SERIALIZER: {api_settings.USER_MODEL_SERIALIZER} "
+                    "failed to parse the received payload."
                 )
-                created = s.is_valid(raise_exception=True)
-                if not created:
-                    raise exceptions.AuthenticationFailed(
-                        f"Integrity error with USER_MODEL_SERIALIZER: {api_settings.USER_MODEL_SERIALIZER} "
-                        "failed to parse the received payload."
-                    )
-                user = s.save()
-            except ImportError:
-                msg = f"Could not import serializer '{api_settings.USER_MODEL_SERIALIZER}'"
-                raise ImportError(msg)
-
+            user = s.save()
+        except ImportError:
+            msg = f"Could not import serializer '{api_settings.USER_MODEL_SERIALIZER}'"
+            raise ImportError(msg)
         except IntegrityError as e:
             # This is most likely caused by having two different User models.
             # Eg. a Custom User model in Auth-Service and a vanilla User in
