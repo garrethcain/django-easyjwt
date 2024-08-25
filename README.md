@@ -1,7 +1,7 @@
 # Django-EasyJWT
 
-This is a package for the implementation of a remote authentication backend 
-for Django apps, primarily meant for use with JWTs, also supporting sessions as 
+This is a package for the implementation of a remote authentication backend
+for Django apps, primarily meant for use with JWTs, also supporting sessions as
 well. Ie. elevated users could log into the Django `/admin/` once authenticated.
 The target is microservice ecosystems, with several independant services all
 authenticating against a central authentication services, or cas.
@@ -11,9 +11,9 @@ The PyPi package can be found here: https://pypi.org/project/django-easyjwt
 ACKNOWLEDGEMENTS
 This package is heavily based on Djangorestframework_simplejwt and heavily influenced by SimpleJWT.
 
-This package is used in the example 
+This package is used in the example
 [auth-client-service-example](https://github.com/garrethcain/django-easyjwt-example)
-project. 
+project.
 
 # Change Log
 
@@ -40,7 +40,7 @@ kind of private network and not public facing.
 
 This package is a wrapper for all the main components of the auth-service and client-service; eg.
 
-* /token/ to obtain an access and a refresh token, 
+* /token/ to obtain an access and a refresh token,
     and create/update the local instance.
 * /token/refresh/ to refresh an expired access token.
 * /token/verify/ to confirm if a token is valid or not.
@@ -49,15 +49,15 @@ The above urls in the client-service just proxy requests to the remote
 Auth-Service, configured in `settings.py` `REMOTE_JWT` dict, but creating a
 local user object if required.
 
-All that is needed is to add the Django-EasyJWT URLs to your client-service. The 
+All that is needed is to add the Django-EasyJWT URLs to your client-service. The
 auth-service remains mostly vanilla aside from maybe using a custom User model,
 include in this package as well, for convenience.
 
-You can't create users in the local client-service! 
+You can't create users in the local client-service!
 If you retrieve a user from the auth-service with the same ID you will overwrite
 the local record with data from the auth-service.
 
-Your project can use HMAC by implementing some HMAC backend locally. The HMAC 
+Your project can use HMAC by implementing some HMAC backend locally. The HMAC
 keys will be kept local to the service and not centralised in the Auth-Service.
 The Auth-Service is intentionally kept lean and only handles "users".
 
@@ -262,7 +262,7 @@ We're going to create three test users as below.
 * staff | staff@test.com | staff-pass
 * user | user@test.com | user-pass
 
-Eg. 
+Eg.
 ```
 export DJANGO_SUPERUSER_EMAIL=admin@test.com
 export DJANGO_SUPERUSER_USERNAME=admin
@@ -274,7 +274,7 @@ or
 $ python manage.py createsuperuser
 ```
 Then stand up the auth-service and log into `http://127.0.0.1:8000/admin/` login
-with the superuser you created above and create the other two users, setting 
+with the superuser you created above and create the other two users, setting
 `is_staff=True` for the staff user.
 Log out once you're done and terminate the instance that's running with `^C` and
 deactivate this virtual environment.
@@ -465,7 +465,7 @@ REMOTE_JWT = {
     "REMOTE_AUTH_SERVICE_VERIFY_PATH": "/auth/token/verify/", # The path to verify a token
     "REMOTE_AUTH_SERVICE_USER_PATH": "/auth/users/{user_id}/", # The path to get the user object
     "USER_ID_FIELD": "id",
-    "USER_ID_CLAIM": "user_id",    
+    "USER_ID_CLAIM": "user_id",
 }
 ```
 
@@ -566,7 +566,7 @@ $ python manage.py migrate
 
 As mentioned earlier, we have two services and auth-service and a client-service
 . We want the auth-service to be on `:8000` and the client-service to be at
-`:8001`. 
+`:8001`.
 
 **This is important because it's how we configure the RemoteJWT's configuration
 in the auth-service and client-service.**
@@ -601,7 +601,7 @@ Remember the users added to the auth-service further back?
 You'll need those email and passwords shortly.
 
 Also remember that the auth-service is at `:8000` and the client-service is at
-`:8001`. As a client-service user, we should never interact with the 
+`:8001`. As a client-service user, we should never interact with the
 auth-service directly. It shouldn't even be accessible to the public in a normal
 production environment.
 
@@ -627,11 +627,11 @@ Will give you a response like;
 
 
 ## Perform a generic API requst
- 
+
 Export the access token from the previous response to an envar.
 eg.
  `export ACCESS_TOKEN={paste_token_here}`
- 
+
  Should return 'success'.
 
 ```
@@ -724,7 +724,8 @@ class CustomUserModelSerializer(serializers.ModelSerializer):
             "is_superuser",
             "customuserfield",
         )
-        read_only_fields = ("date_joined", "last_login", "is_staff", "is_superuser")
+        # any read_only fields here will remove them from the validate_data stopping them from being updated
+        # in the client db.
 
     def create(self, validated_data):
         """
@@ -744,6 +745,25 @@ class CustomUserModelSerializer(serializers.ModelSerializer):
         serializer.save(user=user)
 
         return user
+
+    def update(self, instance, validated_data):
+        customuserfield = validated_data.pop("customuserfield")
+        # Delete stale customuserfield data.
+        # It's stale because this payload is the most recent truth.
+        instance.customuserfield.delete()
+        serializer = CustomUserFieldSerializer(data=customuserfield)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user=instance)
+
+        instance.first_name = validated_data["first_name"]
+        instance.last_name = validated_data["last_name"]
+        # Do no update email, its a primary key.
+        instance.last_login = validated_data["last_login"]
+        instance.is_active = validated_data["is_active"]
+        instance.is_staff = validated_data["is_staff"]
+        instance.is_superuser = validated_data["is_superuser"]
+        instance.save()
+        return instance
 ```
 
 Because, in this example, the extra data is being exposed as a nested serializer, you are required to override
@@ -752,7 +772,7 @@ the data relevant to the service.
 
 
 # Permissions
-Now that some custom data is being sent along witht the login request, we need to do something with it that 
+Now that some custom data is being sent along witht the login request, we need to do something with it that
 allows a user to use one service and not another. The most straight forward solution would be to name the
 fields being passed as the services needing access and then use a permission class (for DRF only) to reject
 access if they're not authed for this particular service.
