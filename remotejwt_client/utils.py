@@ -36,13 +36,9 @@ class TokenManager:
                 verify=True,
             )
         except requests.exceptions.ConnectionError as e:
-            raise exceptions.AuthenticationFailed(
-                "Authentication Service Connection Error."
-            ) from e
+            raise exceptions.AuthenticationFailed("Authentication Service Connection Error.") from e
         except requests.exceptions.Timeout as e:
-            raise exceptions.AuthenticationFailed(
-                "Authentication Service Timed Out."
-            ) from e
+            raise exceptions.AuthenticationFailed("Authentication Service Timed Out.") from e
 
         content_type = response.headers.get("Content-Type")
         if content_type != "application/json":
@@ -101,16 +97,12 @@ class TokenManager:
         return (json.loads(header_str), json.loads(payload_str), signature)
 
     def __create_or_update_user(self, tokens):
-        header_dict, payload_dict, signature = self.__parse_auth_string(
-            tokens["access"]
-        )
+        header_dict, payload_dict, signature = self.__parse_auth_string(tokens["access"])
         user_id = payload_dict[settings.REMOTE_JWT["USER_ID_CLAIM"]]
         auth_header = settings.REMOTE_JWT["AUTH_HEADER_NAME"]
         auth_header_types = settings.REMOTE_JWT["AUTH_HEADER_TYPES"]
         root_url = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_URL"]
-        path = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_USER_PATH"].format(
-            user_id=user_id
-        )
+        path = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_USER_PATH"].format(user_id=user_id)
         headers: dict[str, str] = {
             auth_header: f"{auth_header_types[0]} {tokens.get('access')}",
             "content-type": "application/json",
@@ -124,13 +116,9 @@ class TokenManager:
             try:
                 response = session.send(prepped)
             except requests.exceptions.ConnectionError as e:
-                raise exceptions.AuthenticationFailed(
-                    "Authentication Service Connection Error."
-                ) from e
+                raise exceptions.AuthenticationFailed("Authentication Service Connection Error.") from e
             except requests.exceptions.Timeout as e:
-                raise exceptions.AuthenticationFailed(
-                    "Authentication Service Timed Out."
-                ) from e
+                raise exceptions.AuthenticationFailed("Authentication Service Timed Out.") from e
         if response.status_code != 200:
             raise exceptions.AuthenticationFailed(response.text)
 
@@ -166,7 +154,6 @@ class TokenManager:
             # Eg. a Custom User model in Auth-Service and a vanilla User in
             # your client project.
             raise exceptions.AuthenticationFailed(
-                "Integrity error with user from Authentication Service. Different User models? "
-                f"{e}"
+                "Integrity error with user from Authentication Service. Different User models? " f"{e}"
             ) from e
         return (user, created)
