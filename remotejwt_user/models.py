@@ -143,14 +143,14 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractUser):
-    objects = UserManager()  # type: ignore
+    objects = UserManager()
 
     """User model."""
 
     # We are inheriting AbstractUser and username is already defined there
     # We dont want to use username as we will be using email as login
     # inorder to not use username we say username = None
-    username = None  # type: ignore
+    username = None
     first_name = models.CharField(_("first name"), max_length=150, blank=True)
     last_name = models.CharField(_("last name"), max_length=150, blank=True)
     location = models.TextField(null=True, blank=True)
