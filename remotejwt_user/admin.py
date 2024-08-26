@@ -1,4 +1,4 @@
-from tpying import List
+from typing import List
 
 from .models import User
 
@@ -15,9 +15,7 @@ class UserCreationForm(forms.ModelForm):
     fields, plus a repeated password."""
 
     password1 = forms.CharField(label="Password", widget=forms.PasswordInput)
-    password2 = forms.CharField(
-        label="Password confirmation", widget=forms.PasswordInput
-    )
+    password2 = forms.CharField(label="Password confirmation", widget=forms.PasswordInput)
 
     class Meta:
         model = User
@@ -126,9 +124,7 @@ class RemoteJWTUserAdmin(UserAdmin):
         ),
         ("Important dates", {"fields": ("last_login",)}),
     )
-    add_fieldsets = (
-        (None, {"classes": ("wide",), "fields": ("email", "password1", "password2")}),
-    )
+    add_fieldsets = ((None, {"classes": ("wide",), "fields": ("email", "password1", "password2")}),)
     search_fields = ("email",)
     ordering = ("email",)
     filter_horizontal = ()

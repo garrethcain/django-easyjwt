@@ -194,9 +194,7 @@ class User(AbstractUser):
     class Meta(AbstractUser.Meta):
         swappable = "AUTH_USER_MODEL"
         db_table = "user"
-        constraints = [
-            models.UniqueConstraint(fields=["email"], name="user_email_type_unique")
-        ]
+        constraints = [models.UniqueConstraint(fields=["email"], name="user_email_type_unique")]
 
     def __str__(self):
         return self.email
