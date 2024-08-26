@@ -125,8 +125,7 @@ class TokenManager:
         user_dict = response.json()
         user_id = user_dict.pop("id")
         try:
-            payload = {self.username_field: user_dict[self.username_field]}
-            existing_user = User.objects.get(**payload)
+            existing_user = User.objects.get(**{self.username_field: user_dict[self.username_field]})
         except User.DoesNotExist:
             existing_user = None
         try:
