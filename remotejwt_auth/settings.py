@@ -69,9 +69,7 @@ class APISettings(_APISettings):  # pragma: no cover
             if setting in user_settings:
                 raise RuntimeError(
                     format_lazy(
-                        _(
-                            "The '{}' setting has been removed. Please refer to '{}' for available settings."
-                        ),
+                        _("The '{}' setting has been removed. Please refer to '{}' for available settings."),
                         setting,
                         SETTINGS_DOC,
                     )

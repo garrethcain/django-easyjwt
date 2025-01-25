@@ -2,7 +2,6 @@ from django.utils.module_loading import import_string
 from rest_framework import generics, status
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.serializers import Serializer
 
 from .authentication import AUTH_HEADER_TYPES
 from .exceptions import InvalidToken, TokenError
@@ -22,14 +21,15 @@ class TokenViewBase(generics.GenericAPIView):
         """
         If serializer_class is set, use it directly. Otherwise get the class from settings.
         """
-
         if self.serializer_class:
             return self.serializer_class
+
         try:
-            return import_string(self._serializer_class)
+            serializer = import_string(self._serializer_class)
         except ImportError:
             msg = f"Could not import serializer '{self._serializer_class}'"
             raise ImportError(msg)
+        return serializer
 
     def get_authenticate_header(self, request: Request) -> str:
         return '{} realm="{}"'.format(

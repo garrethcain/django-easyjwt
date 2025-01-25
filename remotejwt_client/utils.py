@@ -98,11 +98,10 @@ class TokenManager:
 
     def __create_or_update_user(self, tokens):
         header_dict, payload_dict, signature = self.__parse_auth_string(tokens["access"])
-        user_id = payload_dict[settings.REMOTE_JWT["USER_ID_CLAIM"]]
         auth_header = settings.REMOTE_JWT["AUTH_HEADER_NAME"]
         auth_header_types = settings.REMOTE_JWT["AUTH_HEADER_TYPES"]
         root_url = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_URL"]
-        path = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_USER_PATH"].format(user_id=user_id)
+        path = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_USER_PATH"]
         headers: dict[str, str] = {
             auth_header: f"{auth_header_types[0]} {tokens.get('access')}",
             "content-type": "application/json",
@@ -123,7 +122,6 @@ class TokenManager:
             raise exceptions.AuthenticationFailed(response.text)
 
         user_dict = response.json()
-        user_id = user_dict.pop("id")
         try:
             existing_user = User.objects.get(**{self.username_field: user_dict[self.username_field]})
         except User.DoesNotExist:
@@ -138,11 +136,13 @@ class TokenManager:
                     "raw_data": user_dict,
                 },
             )
-            created = s.is_valid(raise_exception=True)
+            # Use False here so the user isn't presented with the serializer
+            # we just want them to see the error below.
+            created = s.is_valid(raise_exception=False)
             if not created:
                 raise exceptions.AuthenticationFailed(
                     f"Integrity error with USER_MODEL_SERIALIZER: {api_settings.USER_MODEL_SERIALIZER} "
-                    "failed to parse the received payload."
+                    "failed to parse the received payload through the serializer."
                 )
             user = s.save()
         except ImportError:
@@ -153,6 +153,6 @@ class TokenManager:
             # Eg. a Custom User model in Auth-Service and a vanilla User in
             # your client project.
             raise exceptions.AuthenticationFailed(
-                "Integrity error with user from Authentication Service. Different User models? " f"{e}"
+                f"Integrity error with user from Authentication Service. Different User models? {e}"
             ) from e
         return (user, created)

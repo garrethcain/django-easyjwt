@@ -65,15 +65,11 @@ class TokenBackend:
         algorithms that require it
         """
         if algorithm not in ALLOWED_ALGORITHMS:
-            raise TokenBackendError(
-                format_lazy(_("Unrecognized algorithm type '{}'"), algorithm)
-            )
+            raise TokenBackendError(format_lazy(_("Unrecognized algorithm type '{}'"), algorithm))
 
         if algorithm in algorithms.requires_cryptography and not algorithms.has_crypto:
             raise TokenBackendError(
-                format_lazy(
-                    _("You must have cryptography installed to use {}."), algorithm
-                )
+                format_lazy(_("You must have cryptography installed to use {}."), algorithm)
             )
 
     def get_leeway(self) -> timedelta:
@@ -86,9 +82,7 @@ class TokenBackend:
         else:
             raise TokenBackendError(
                 format_lazy(
-                    _(
-                        "Unrecognized type '{}', 'leeway' must be of type int, float or timedelta."
-                    ),
+                    _("Unrecognized type '{}', 'leeway' must be of type int, float or timedelta."),
                     type(self.leeway),
                 )
             )

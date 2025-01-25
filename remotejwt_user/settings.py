@@ -1,6 +1,6 @@
+from typing import Any, Tuple
 from django.conf import settings
 from django.test.signals import setting_changed
-from django.utils.translation import gettext_lazy as _
 from rest_framework.settings import APISettings as _APISettings
 
 
@@ -14,7 +14,9 @@ DEFAULTS = {
 
 IMPORT_STRINGS = ()
 
-REMOVED_SETTINGS = ()
+REMOVED_SETTINGS: Tuple[str] = ("TEST",)
+
+REMOTE_JWT: dict[str, Any] = {}
 
 
 class APISettings(_APISettings):  # pragma: no cover
@@ -24,9 +26,7 @@ class APISettings(_APISettings):  # pragma: no cover
         for setting in REMOVED_SETTINGS:
             if setting in user_settings:
                 raise RuntimeError(
-                    (
-                        "The '{}' setting has been removed. Please refer to '{}' for available settings."
-                    ),
+                    ("The '{}' setting has been removed. Please refer to '{}' for available settings."),
                     setting,
                     SETTINGS_DOC,
                 )
