@@ -3,7 +3,7 @@ from django.test.signals import setting_changed
 from rest_framework.settings import APISettings as _APISettings
 
 
-USER_SETTINGS = getattr(settings, "REMOTE_JWT", None)
+USER_SETTINGS = getattr(settings, "EASY_JWT", None)
 
 DEFAULTS = {
     "AUTH_HEADER_TYPES": ("Bearer",),
@@ -15,7 +15,7 @@ DEFAULTS = {
     "REMOTE_AUTH_SERVICE_USER_PATH": "/auth/user/",  # the path to get the user object from the remote auth service
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
-    "USER_MODEL_SERIALIZER": "remotejwt_user.serializers.TokenUserSerializer",
+    "USER_MODEL_SERIALIZER": "easyjwt_user.serializers.TokenUserSerializer",
 }
 
 IMPORT_STRINGS = (
@@ -29,7 +29,7 @@ REMOVED_SETTINGS = ("EMPTY",)
 
 class APISettings(_APISettings):  # pragma: no cover
     def __check_user_settings(self, user_settings):
-        SETTINGS_DOC = "https://django-rest-framework-remotejwt.readthedocs.io/en/latest/settings.html"
+        SETTINGS_DOC = "https://django-easyjwt.readthedocs.io/en/latest/settings.html"
 
         for setting in REMOVED_SETTINGS:
             if setting in user_settings:
@@ -49,7 +49,7 @@ def reload_api_settings(*args, **kwargs):  # pragma: no cover
     global api_settings
 
     setting, value = kwargs["setting"], kwargs["value"]
-    if setting == "REMOTE_JWT":
+    if setting == "EASY_JWT":
         api_settings = APISettings(value, DEFAULTS, IMPORT_STRINGS)
 
 

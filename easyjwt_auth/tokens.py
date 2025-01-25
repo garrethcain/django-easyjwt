@@ -214,7 +214,7 @@ class Token:
     @property
     def token_backend(self) -> "TokenBackend":
         if self._token_backend is None:
-            self._token_backend = import_string("remotejwt_auth.state.token_backend")
+            self._token_backend = import_string("easyjwt_auth.state.token_backend")
         return self._token_backend
 
     def get_token_backend(self) -> "TokenBackend":
@@ -224,7 +224,7 @@ class Token:
 
 class BlacklistMixin(Generic[T]):
     """
-    If the `remotejwt_auth.token_blacklist` app was configured to be
+    If the `easyjwt_auth.token_blacklist` app was configured to be
     used, tokens created from `BlacklistMixin` subclasses will insert
     themselves into an outstanding token list and also check for their
     membership in a token blacklist.
@@ -232,7 +232,7 @@ class BlacklistMixin(Generic[T]):
 
     payload: Dict[str, Any]
 
-    if "remotejwt_auth.token_blacklist" in settings.INSTALLED_APPS:
+    if "easyjwt_auth.token_blacklist" in settings.INSTALLED_APPS:
 
         def verify(self, *args, **kwargs) -> None:
             self.check_blacklist()

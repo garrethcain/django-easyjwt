@@ -51,10 +51,10 @@ class ModelBackend(authentication.BaseAuthentication):
             return None
 
 
-class RemoteJWTAuthentication(authentication.BaseAuthentication):
+class EasyJWTAuthentication(authentication.BaseAuthentication):
     def __verify_token(self, jwt: str) -> Tuple[bool, dict]:
-        root_url = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_URL"]
-        path = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_VERIFY_PATH"]
+        root_url = settings.EASY_JWT["REMOTE_AUTH_SERVICE_URL"]
+        path = settings.EASY_JWT["REMOTE_AUTH_SERVICE_VERIFY_PATH"]
         headers = {
             "content-type": "application/json",
         }
@@ -94,9 +94,9 @@ class RemoteJWTAuthentication(authentication.BaseAuthentication):
         return (json.loads(header_str), json.loads(payload_str), signature)
 
     def __get_user_details(self, user_id: int, jwt: str) -> dict:
-        auth_header_types = settings.REMOTE_JWT["AUTH_HEADER_TYPES"]
-        root_url = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_URL"]
-        path = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_USER_PATH"]
+        auth_header_types = settings.EASY_JWT["AUTH_HEADER_TYPES"]
+        root_url = settings.EASY_JWT["REMOTE_AUTH_SERVICE_URL"]
+        path = settings.EASY_JWT["REMOTE_AUTH_SERVICE_USER_PATH"]
         headers: dict[str, str] = {
             "Authorization": f"{auth_header_types[0]} {jwt}",
             "content-type": "application/json",
@@ -156,7 +156,7 @@ class RemoteJWTAuthentication(authentication.BaseAuthentication):
 
         # If they successfully specified a method but its not AUTH_HEADER_TYPE, pass
         # through, could be Basic auth or similar
-        if auth_method not in settings.REMOTE_JWT["AUTH_HEADER_TYPES"]:
+        if auth_method not in settings.EASY_JWT["AUTH_HEADER_TYPES"]:
             return None
 
         token_verified, message = self.__verify_token(jwt=auth_string)
@@ -167,7 +167,7 @@ class RemoteJWTAuthentication(authentication.BaseAuthentication):
         header_dict, payload_dict, signature = self.__parse_auth_string(auth_string)
         # We can trust the user id because we validated the signature against the remote
         # auth service to show it wasn't tampered with.
-        user_id = payload_dict[settings.REMOTE_JWT["USER_ID_CLAIM"]]
+        user_id = payload_dict[settings.EASY_JWT["USER_ID_CLAIM"]]
         try:
             user = User.objects.get(id=user_id)
         except User.DoesNotExist as e:

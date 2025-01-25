@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class ClientAppConfig(AppConfig):
+class EasyJWTUserConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "remotejwt_client"
+    name = "easyjwt_user"
