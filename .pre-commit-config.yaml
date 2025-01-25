@@ -47,8 +47,6 @@ repos:
         additional_dependencies:
           [
             'djangorestframework-stubs[compatible-mypy]',
-            # 'django-stubs[compatible-mypy]',
-            # 'django-stubs-ext',
             'dj_database_url',
             'environs',
             'djangorestframework',
