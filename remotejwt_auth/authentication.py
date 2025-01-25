@@ -17,9 +17,7 @@ AUTH_HEADER_TYPES = api_settings.AUTH_HEADER_TYPES
 if not isinstance(api_settings.AUTH_HEADER_TYPES, (list, tuple)):
     AUTH_HEADER_TYPES = (AUTH_HEADER_TYPES,)
 
-AUTH_HEADER_TYPE_BYTES: Set[bytes] = {
-    h.encode(HTTP_HEADER_ENCODING) for h in AUTH_HEADER_TYPES
-}
+AUTH_HEADER_TYPE_BYTES: Set[bytes] = {h.encode(HTTP_HEADER_ENCODING) for h in AUTH_HEADER_TYPES}
 
 AuthUser = TypeVar("AuthUser", AbstractBaseUser, TokenUser)
 
@@ -135,12 +133,8 @@ class JWTAuthentication(authentication.BaseAuthentication):
             raise AuthenticationFailed(_("User is inactive"), code="user_inactive")
 
         if api_settings.CHECK_REVOKE_TOKEN:
-            if validated_token.get(
-                api_settings.REVOKE_TOKEN_CLAIM
-            ) != get_md5_hash_password(user.password):
-                raise AuthenticationFailed(
-                    _("The user's password has been changed."), code="password_changed"
-                )
+            if validated_token.get(api_settings.REVOKE_TOKEN_CLAIM) != get_md5_hash_password(user.password):
+                raise AuthenticationFailed("The user's password has been changed.", code="password_changed")
 
         return user
 

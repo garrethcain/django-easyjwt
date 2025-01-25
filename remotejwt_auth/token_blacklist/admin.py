@@ -13,6 +13,7 @@ from .models import BlacklistedToken, OutstandingToken
 AuthUser = TypeVar("AuthUser", AbstractBaseUser, TokenUser)
 
 
+@admin.register(OutstandingToken)
 class OutstandingTokenAdmin(admin.ModelAdmin):
     list_display = (
         "jti",
@@ -43,17 +44,11 @@ class OutstandingTokenAdmin(admin.ModelAdmin):
     def has_delete_permission(self, *args, **kwargs) -> bool:
         return False
 
-    def has_change_permission(
-        self, request: Request, obj: Optional[object] = None
-    ) -> bool:
-        return request.method in ["GET", "HEAD"] and super().has_change_permission(
-            request, obj
-        )
+    def has_change_permission(self, request: Request, obj: Optional[object] = None) -> bool:
+        return request.method in ["GET", "HEAD"] and super().has_change_permission(request, obj)
 
 
-admin.site.register(OutstandingToken, OutstandingTokenAdmin)
-
-
+@admin.register(BlacklistedToken)
 class BlacklistedTokenAdmin(admin.ModelAdmin):
     list_display = (
         "token_jti",
@@ -73,29 +68,30 @@ class BlacklistedTokenAdmin(admin.ModelAdmin):
 
         return qs.select_related("token__user")
 
+    @admin.display(
+        description=_("jti"),
+        ordering="token__jti",
+    )
     def token_jti(self, obj: BlacklistedToken) -> str:
         return obj.token.jti
 
-    token_jti.short_description = _("jti")  # type: ignore
-    token_jti.admin_order_field = "token__jti"  # type: ignore
-
+    @admin.display(
+        description=_("user"),
+        ordering="token__user",
+    )
     def token_user(self, obj: BlacklistedToken) -> AuthUser:
         return obj.token.user
 
-    token_user.short_description = _("user")  # type: ignore
-    token_user.admin_order_field = "token__user"  # type: ignore
-
+    @admin.display(
+        description=_("created at"),
+        ordering="token__created_at",
+    )
     def token_created_at(self, obj: BlacklistedToken) -> datetime:
         return obj.token.created_at
 
-    token_created_at.short_description = _("created at")  # type: ignore
-    token_created_at.admin_order_field = "token__created_at"  # type: ignore
-
+    @admin.display(
+        description=_("expires at"),
+        ordering="token__expires_at",
+    )
     def token_expires_at(self, obj: BlacklistedToken) -> datetime:
         return obj.token.expires_at
-
-    token_expires_at.short_description = _("expires at")  # type: ignore
-    token_expires_at.admin_order_field = "token__expires_at"  # type: ignore
-
-
-admin.site.register(BlacklistedToken, BlacklistedTokenAdmin)

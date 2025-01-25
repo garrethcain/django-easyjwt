@@ -111,10 +111,7 @@ class Token:
         # If the defaults are not None then we should enforce the
         # requirement of these settings.As above, the spec labels
         # these as optional.
-        if (
-            api_settings.JTI_CLAIM is not None
-            and api_settings.JTI_CLAIM not in self.payload
-        ):
+        if api_settings.JTI_CLAIM is not None and api_settings.JTI_CLAIM not in self.payload:
             raise TokenError(_("Token has no id"))
 
         if api_settings.TOKEN_TYPE_CLAIM is not None:
@@ -175,9 +172,7 @@ class Token:
 
         self.payload[claim] = datetime_to_epoch(at_time)
 
-    def check_exp(
-        self, claim: str = "exp", current_time: Optional[datetime] = None
-    ) -> None:
+    def check_exp(self, claim: str = "exp", current_time: Optional[datetime] = None) -> None:
         """
         Checks whether a timestamp value in the given claim has passed (since
         the given datetime value in `current_time`).  Raises a TokenError with
@@ -210,9 +205,7 @@ class Token:
         token[api_settings.USER_ID_CLAIM] = user_id
 
         if api_settings.CHECK_REVOKE_TOKEN:
-            token[api_settings.REVOKE_TOKEN_CLAIM] = get_md5_hash_password(
-                user.password
-            )
+            token[api_settings.REVOKE_TOKEN_CLAIM] = get_md5_hash_password(user.password)
 
         return token
 

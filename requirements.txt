@@ -7,7 +7,6 @@ distlib==0.3.8
 Django==5.0
 django-easyjwt==0.4.1
 djangorestframework==3.14.0
-drf-remotejwt==0.3.2
 filelock==3.13.1
 identify==2.5.35
 idna==3.6

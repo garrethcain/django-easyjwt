@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.test.signals import setting_changed
-from django.utils.translation import gettext_lazy as _
 from rest_framework.settings import APISettings as _APISettings
 
 
@@ -13,7 +12,7 @@ DEFAULTS = {
     "REMOTE_AUTH_SERVICE_TOKEN_PATH": "/auth/token/",  # The path to login and retrieve a token
     "REMOTE_AUTH_SERVICE_REFRESH_PATH": "/auth/token/refresh/",  # The path to refresh a token
     "REMOTE_AUTH_SERVICE_VERIFY_PATH": "/auth/token/verify/",  # The path to verify a token
-    "REMOTE_AUTH_SERVICE_USER_PATH": "/auth/users/{user_id}/",  # the path to get the user object from the remote auth service
+    "REMOTE_AUTH_SERVICE_USER_PATH": "/auth/user/",  # the path to get the user object from the remote auth service
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
     "USER_MODEL_SERIALIZER": "remotejwt_user.serializers.TokenUserSerializer",
@@ -25,7 +24,7 @@ IMPORT_STRINGS = (
     "USER_AUTHENTICATION_RULE",
 )
 
-REMOVED_SETTINGS = ()
+REMOVED_SETTINGS = ("EMPTY",)
 
 
 class APISettings(_APISettings):  # pragma: no cover
@@ -35,9 +34,7 @@ class APISettings(_APISettings):  # pragma: no cover
         for setting in REMOVED_SETTINGS:
             if setting in user_settings:
                 raise RuntimeError(
-                    (
-                        "The '{}' setting has been removed. Please refer to '{}' for available settings."
-                    ),
+                    ("The '{}' setting has been removed. Please refer to '{}' for available settings."),
                     setting,
                     SETTINGS_DOC,
                 )

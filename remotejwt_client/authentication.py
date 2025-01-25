@@ -69,13 +69,9 @@ class RemoteJWTAuthentication(authentication.BaseAuthentication):
                 verify=True,
             )
         except requests.exceptions.ConnectionError as e:
-            raise exceptions.AuthenticationFailed(
-                "Authentication Service Connection Error."
-            ) from e
+            raise exceptions.AuthenticationFailed("Authentication Service Connection Error.") from e
         except requests.exceptions.Timeout as e:
-            raise exceptions.AuthenticationFailed(
-                "Authentication Service Timed Out."
-            ) from e
+            raise exceptions.AuthenticationFailed("Authentication Service Timed Out.") from e
 
         content_type = response.headers.get("Content-Type")
         if content_type != "application/json":
@@ -100,9 +96,7 @@ class RemoteJWTAuthentication(authentication.BaseAuthentication):
     def __get_user_details(self, user_id: int, jwt: str) -> dict:
         auth_header_types = settings.REMOTE_JWT["AUTH_HEADER_TYPES"]
         root_url = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_URL"]
-        path = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_USER_PATH"].format(
-            user_id=user_id
-        )
+        path = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_USER_PATH"]
         headers: dict[str, str] = {
             "Authorization": f"{auth_header_types[0]} {jwt}",
             "content-type": "application/json",
@@ -115,13 +109,9 @@ class RemoteJWTAuthentication(authentication.BaseAuthentication):
             try:
                 response = session.send(prepped)
             except requests.exceptions.ConnectionError as e:
-                raise exceptions.AuthenticationFailed(
-                    "Authentication Service Connection Error."
-                ) from e
+                raise exceptions.AuthenticationFailed("Authentication Service Connection Error.") from e
             except requests.exceptions.Timeout as e:
-                raise exceptions.AuthenticationFailed(
-                    "Authentication Service Timed Out."
-                ) from e
+                raise exceptions.AuthenticationFailed("Authentication Service Timed Out.") from e
         if response.status_code != 200:
             raise exceptions.AuthenticationFailed(response.json())
         return json.loads(response.text)

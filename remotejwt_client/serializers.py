@@ -6,10 +6,10 @@ User = get_user_model()
 
 class PasswordField(serializers.CharField):
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault('style', {})
+        kwargs.setdefault("style", {})
 
-        kwargs['style']['input_type'] = 'password'
-        kwargs['write_only'] = True
+        kwargs["style"]["input_type"] = "password"
+        kwargs["write_only"] = True
 
         super().__init__(*args, **kwargs)
 
@@ -18,23 +18,23 @@ class TokenObtainSerializer(serializers.Serializer):
     username_field = get_user_model().USERNAME_FIELD
 
     default_error_messages = {
-        'no_active_account': 'No active account found with the given \
-            credentials'
+        "no_active_account": "No active account found with the given \
+            credentials"
     }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.fields[self.username_field] = serializers.CharField()
-        self.fields['password'] = PasswordField()
+        self.fields["password"] = PasswordField()
 
     def validate(self, attrs):
         authenticate_kwargs = {
             self.username_field: attrs[self.username_field],
-            'password': attrs['password'],
+            "password": attrs["password"],
         }
         try:
-            authenticate_kwargs['request'] = self.context['request']
+            authenticate_kwargs["request"] = self.context["request"]
         except KeyError:
             pass
 
