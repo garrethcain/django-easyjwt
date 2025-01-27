@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from remotejwt_auth.utils import aware_utcnow
+from easyjwt_auth.utils import aware_utcnow
 
 from ...models import OutstandingToken
 

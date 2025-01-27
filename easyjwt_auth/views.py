@@ -111,7 +111,7 @@ token_verify = TokenVerifyView.as_view()
 class TokenBlacklistView(TokenViewBase):
     """
     Takes a token and blacklists it. Must be used with the
-    `remotejwt_auth.token_blacklist` app installed.
+    `easyjwt_auth.token_blacklist` app installed.
     """
 
     _serializer_class = api_settings.TOKEN_BLACKLIST_SERIALIZER

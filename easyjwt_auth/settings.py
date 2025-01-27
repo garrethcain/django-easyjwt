@@ -8,7 +8,7 @@ from rest_framework.settings import APISettings as _APISettings
 
 from .utils import format_lazy
 
-USER_SETTINGS = getattr(settings, "REMOTE_JWT", None)
+USER_SETTINGS = getattr(settings, "EASY_JWT", None)
 
 DEFAULTS = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
@@ -28,20 +28,20 @@ DEFAULTS = {
     "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
-    "USER_AUTHENTICATION_RULE": "remotejwt_auth.authentication.default_user_authentication_rule",
-    "AUTH_TOKEN_CLASSES": ("remotejwt_auth.tokens.AccessToken",),
+    "USER_AUTHENTICATION_RULE": "easyjwt_auth.authentication.default_user_authentication_rule",
+    "AUTH_TOKEN_CLASSES": ("easyjwt_auth.tokens.AccessToken",),
     "TOKEN_TYPE_CLAIM": "token_type",
     "JTI_CLAIM": "jti",
-    "TOKEN_USER_CLASS": "remotejwt_user.models.TokenUser",
+    "TOKEN_USER_CLASS": "easyjwt_user.models.TokenUser",
     "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
     "SLIDING_TOKEN_LIFETIME": timedelta(minutes=5),
     "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
-    "TOKEN_OBTAIN_SERIALIZER": "remotejwt_auth.serializers.TokenObtainPairSerializer",
-    "TOKEN_REFRESH_SERIALIZER": "remotejwt_auth.serializers.TokenRefreshSerializer",
-    "TOKEN_VERIFY_SERIALIZER": "remotejwt_auth.serializers.TokenVerifySerializer",
-    "TOKEN_BLACKLIST_SERIALIZER": "remotejwt_auth.serializers.TokenBlacklistSerializer",
-    "SLIDING_TOKEN_OBTAIN_SERIALIZER": "remotejwt_auth.serializers.TokenObtainSlidingSerializer",
-    "SLIDING_TOKEN_REFRESH_SERIALIZER": "remotejwt_auth.serializers.TokenRefreshSlidingSerializer",
+    "TOKEN_OBTAIN_SERIALIZER": "easyjwt_auth.serializers.TokenObtainPairSerializer",
+    "TOKEN_REFRESH_SERIALIZER": "easyjwt_auth.serializers.TokenRefreshSerializer",
+    "TOKEN_VERIFY_SERIALIZER": "easyjwt_auth.serializers.TokenVerifySerializer",
+    "TOKEN_BLACKLIST_SERIALIZER": "easyjwt_auth.serializers.TokenBlacklistSerializer",
+    "SLIDING_TOKEN_OBTAIN_SERIALIZER": "easyjwt_auth.serializers.TokenObtainSlidingSerializer",
+    "SLIDING_TOKEN_REFRESH_SERIALIZER": "easyjwt_auth.serializers.TokenRefreshSlidingSerializer",
     "CHECK_REVOKE_TOKEN": False,
     "REVOKE_TOKEN_CLAIM": "hash_password",
 }
@@ -86,7 +86,7 @@ def reload_api_settings(*args, **kwargs) -> None:  # pragma: no cover
 
     setting, value = kwargs["setting"], kwargs["value"]
 
-    if setting == "REMOTE_JWT":
+    if setting == "EASY_JWT":
         api_settings = APISettings(value, DEFAULTS, IMPORT_STRINGS)
 
 

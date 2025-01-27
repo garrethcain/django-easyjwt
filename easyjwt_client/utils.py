@@ -23,7 +23,7 @@ class TokenManager:
     username_field = get_user_model().USERNAME_FIELD
 
     def __request(self, path, payload) -> dict:
-        root_url = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_URL"]
+        root_url = settings.EASY_JWT["REMOTE_AUTH_SERVICE_URL"]
         headers = {
             "content-type": "application/json",
         }
@@ -58,7 +58,7 @@ class TokenManager:
         """
         Verifies a token against the remote Auth-Service.
         """
-        path = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_VERIFY_PATH"]
+        path = settings.EASY_JWT["REMOTE_AUTH_SERVICE_VERIFY_PATH"]
         payload = {"token": token}
         return self.__request(path, payload)
 
@@ -67,7 +67,7 @@ class TokenManager:
         Returns an Access token by refreshing with the Refresh token
         against the remote Auth-Service.
         """
-        path = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_REFRESH_PATH"]
+        path = settings.EASY_JWT["REMOTE_AUTH_SERVICE_REFRESH_PATH"]
         payload = {"refresh": refresh}
 
         return self.__request(path, payload)
@@ -77,7 +77,7 @@ class TokenManager:
         Returns an Access & Refresh token if authenticated against the remote
         Authentication-Service.
         """
-        path = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_TOKEN_PATH"]
+        path = settings.EASY_JWT["REMOTE_AUTH_SERVICE_TOKEN_PATH"]
         payload = {
             self.username_field: kwargs[self.username_field],
             "password": kwargs.get("password"),
@@ -98,10 +98,10 @@ class TokenManager:
 
     def __create_or_update_user(self, tokens):
         header_dict, payload_dict, signature = self.__parse_auth_string(tokens["access"])
-        auth_header = settings.REMOTE_JWT["AUTH_HEADER_NAME"]
-        auth_header_types = settings.REMOTE_JWT["AUTH_HEADER_TYPES"]
-        root_url = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_URL"]
-        path = settings.REMOTE_JWT["REMOTE_AUTH_SERVICE_USER_PATH"]
+        auth_header = settings.EASY_JWT["AUTH_HEADER_NAME"]
+        auth_header_types = settings.EASY_JWT["AUTH_HEADER_TYPES"]
+        root_url = settings.EASY_JWT["REMOTE_AUTH_SERVICE_URL"]
+        path = settings.EASY_JWT["REMOTE_AUTH_SERVICE_USER_PATH"]
         headers: dict[str, str] = {
             auth_header: f"{auth_header_types[0]} {tokens.get('access')}",
             "content-type": "application/json",
@@ -132,7 +132,7 @@ class TokenManager:
                 existing_user,
                 data=user_dict,
                 context={
-                    "user_id_field": settings.REMOTE_JWT["USER_ID_CLAIM"],
+                    "user_id_field": settings.EASY_JWT["USER_ID_CLAIM"],
                     "raw_data": user_dict,
                 },
             )
@@ -142,7 +142,7 @@ class TokenManager:
             if not created:
                 raise exceptions.AuthenticationFailed(
                     f"Integrity error with USER_MODEL_SERIALIZER: {api_settings.USER_MODEL_SERIALIZER} "
-                    "failed to parse the received payload through the serializer."
+                    "failed to parse the received payload from the auth server."
                 )
             user = s.save()
         except ImportError:

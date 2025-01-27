@@ -98,7 +98,7 @@ class UserChangeForm(forms.ModelForm):
 
 
 @admin.register(User)
-class RemoteJWTUserAdmin(UserAdmin):
+class EasyJWTUserAdmin(UserAdmin):
     # The forms to add and change user instances
     form = UserChangeForm
     add_form = UserCreationForm

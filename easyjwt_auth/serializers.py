@@ -152,7 +152,7 @@ class TokenVerifySerializer(serializers.Serializer):
 
         if (
             api_settings.BLACKLIST_AFTER_ROTATION
-            and "remotejwt_auth.token_blacklist" in settings.INSTALLED_APPS
+            and "easyjwt_auth.token_blacklist" in settings.INSTALLED_APPS
         ):
             jti = token.get(api_settings.JTI_CLAIM)
             if BlacklistedToken.objects.filter(token__jti=jti).exists():

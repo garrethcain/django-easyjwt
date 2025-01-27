@@ -4,7 +4,20 @@ This is a package for the implementation of a remote authentication backend
 for Django apps, primarily meant for use with JWTs, also supporting sessions as
 well. Ie. elevated users could log into the Django `/admin/` once authenticated.
 The target is microservice ecosystems, with several independant services all
-authenticating against a central authentication services, or cas.
+authenticating against a central authentication services, or CAS with permissions
+and other custom user data able to be used in the authentication and Authorization
+process.
+
+### Why does this exist?
+
+I once had a several services with the same users; so I created a a centralised authentication
+service to avoid the confusion of different passwords on, what to the outside, appeared to be
+the same service. Then we added more services, but not all users were allowed access to
+these, which is where the extra data came from.
+
+Then some of our customer decided they wanted to also have this notion of users, staff and
+admins; but we'd already used Django's built in solution for our staff. So we extended the
+extra data to include permissions too.
 
 The PyPi package can be found here: https://pypi.org/project/django-easyjwt
 
@@ -18,7 +31,7 @@ project.
 # Change Log
 
 2024-03-19 - 4.0.2
-    - removed dependency from remotejwt_user migrations.
+    - removed dependency from easyjwt_user migrations.
     - added raw_data to the context var of the custom serializer so custom data stripped by the serializer
       can still be accessed.
     - Changed the exception raise for a remote user model to show text and not try parse to json.
@@ -30,7 +43,7 @@ There are, at a minimum, two components required for this to work;
 1. An Auth-Service, to authenticate against,
 2. A Client-Service, users want to use.
 
-This package is made of of three sub-packages; RemoteJWT-Auth, RemoteJWT-Client, and RemoteJWT-User.
+This package is made of of three sub-packages; easyjwt-Auth, RemoteJWT-Client, and RemoteJWT-User.
 With the Auth & Client used in the separate Auth and Client services and the User being used in both,
 or neither.
 
@@ -46,7 +59,7 @@ This package is a wrapper for all the main components of the auth-service and cl
 * /token/verify/ to confirm if a token is valid or not.
 
 The above urls in the client-service just proxy requests to the remote
-Auth-Service, configured in `settings.py` `REMOTE_JWT` dict, but creating a
+Auth-Service, configured in `settings.py` `EASY_JWT` dict, but creating a
 local user object if required.
 
 All that is needed is to add the Django-EasyJWT URLs to your client-service. The
@@ -167,18 +180,18 @@ Open `config/settings.py` and add the apps we'll be using to `INSTALLED_APPS`;
 INSTALLED_APPS = [
     ...
     'rest_framework',
-    'remotejwt_auth',
-    'remotejwt_user',
+    'easyjwt_auth',
+    'easyjwt_user',
 ]
 ```
 
-We've included `remotejwt_user` so we can use the same User model between
+We've included `easyjwt_user` so we can use the same User model between
 all services. It also includes some convieniences such as update forms and
 changes the Username field from `username` to `email`.
 
 Tell Django about the new user model by adding;
 ```py
-AUTH_USER_MODEL = "remotejwt_user.User"
+AUTH_USER_MODEL = "easyjwt_user.User"
 ```
 
 Next we need to configure Django Rest Framework. For this example you need just
@@ -188,15 +201,15 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.SessionAuthentication",
-        "remotejwt_auth.authentication.JWTAuthentication",
+        "easyjwt_auth.authentication.JWTAuthentication",
     ),
 }
 ```
 
-In order to use RemoteJWT-Auth you will also need to add some configuration for it.
+In order to use easyjwt-Auth you will also need to add some configuration for it.
 
 ```PY
-REMOTE_JWT = {
+EASY_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": False,
@@ -211,10 +224,10 @@ REMOTE_JWT = {
     "LEEWAY": 0,
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
-    "USER_AUTHENTICATION_RULE": "remotejwt_auth.authentication.default_user_authentication_rule",
-    "AUTH_TOKEN_CLASSES": ("remotejwt_auth.tokens.AccessToken",),
+    "USER_AUTHENTICATION_RULE": "easyjwt_auth.authentication.default_user_authentication_rule",
+    "AUTH_TOKEN_CLASSES": ("easyjwt_auth.tokens.AccessToken",),
     "TOKEN_TYPE_CLAIM": "token_type",
-    "TOKEN_USER_CLASS": "remotejwt_auth.models.TokenUser",
+    "TOKEN_USER_CLASS": "easyjwt_auth.models.TokenUser",
     "JTI_CLAIM": "jti",
     "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
     "SLIDING_TOKEN_LIFETIME": timedelta(minutes=5),
@@ -290,13 +303,13 @@ client-service will download the user from.
 ```py
 urlpatterns = [
     ...
-    path('auth/', include('remotejwt_auth.urls')),  # gives us access to the auth views.
-    path('auth/', include('remotejwt_user.urls')),  # gives us access to the users views.
+    path('auth/', include('easyjwt_auth.urls')),  # gives us access to the auth views.
+    path('auth/', include('easyjwt_user.urls')),  # gives us access to the users views.
 ]
 ```
 
 And that's it for the Auth-Service. It doesn't need any views or serializers.
-Everything is handled by RemoteJWT-Auth and Django's OEM methods. This service is
+Everything is handled by easyjwt-Auth and Django's OEM methods. This service is
 super light to run and will handle many requests with ease.
 
 ---
@@ -414,8 +427,8 @@ and add the following lines to `INSTALLED_APPS`;
 INSTALLED_APPS = [
     ...
     'rest_framework',
-    'remotejwt_client',
-    'remotejwt_user',
+    'easyjwt_client',
+    'easyjwt_user',
 ]
 ```
 
@@ -423,7 +436,7 @@ We need to use the same User model as the auth-service, otherwise the user
 returned by the auth-service will cause an integrity error.
 
 ```py
-AUTH_USER_MODEL = "remotejwt_user.User"
+AUTH_USER_MODEL = "easyjwt_user.User"
 ```
 
 Add some configuration for Djang Rest Framework. Change the default behaviour
@@ -435,7 +448,7 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ),
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "remotejwt_client.authentication.RemoteJWTAuthentication",     # Use our service
+        "easyjwt_client.authentication.RemoteJWTAuthentication",     # Use our service
         "rest_framework.authentication.SessionAuthentication",  # Maybe the user has a session...
     ),
 }
@@ -446,7 +459,7 @@ Let Django know that we want to use a custom authentication backend.
 # implement out or custom backend for Admin and other views.
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',    # Default, check the local DB.
-    'remotejwt_client.authentication.ModelBackend'         # Our override to check the remote service.
+    'easyjwt_client.authentication.ModelBackend'         # Our override to check the remote service.
 ]
 ```
 
@@ -456,20 +469,20 @@ should be handled through environmental variables in a real project. But we're
 just aiming for the absolute minimal working example.
 
 ```py
-REMOTE_JWT = {
+EASY_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer", ),
     "AUTH_HEADER_NAME": "Authorization",
     "REMOTE_AUTH_SERVICE_URL": "http://127.0.0.1:8000", # Where do we reach the Auth-Service
     "REMOTE_AUTH_SERVICE_TOKEN_PATH": "/auth/token/", # The path to login and retrieve a token
     "REMOTE_AUTH_SERVICE_REFRESH_PATH": "/auth/token/refresh/", # The path to refresh a token
     "REMOTE_AUTH_SERVICE_VERIFY_PATH": "/auth/token/verify/", # The path to verify a token
-    "REMOTE_AUTH_SERVICE_USER_PATH": "/auth/users/{user_id}/", # The path to get the user object
+    "REMOTE_AUTH_SERVICE_USER_PATH": "/auth/user/", # The path to get the user object
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
 }
 ```
 
-Open `config/urls.py` and add the URLs from RemoteJWT that will be passed
+Open `config/urls.py` and add the URLs from easyjwt that will be passed
 through to the auth-service.
 
 ```py
@@ -478,7 +491,7 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('auth/', include("remotejwt_client.urls"))
+    path('auth/', include("easyjwt_client.urls"))
 ]
 ```
 Don't forget the `include` import.
@@ -540,7 +553,7 @@ from test_app.views import TestView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('auth/', include("remotejwt_client.urls")),
+    path('auth/', include("easyjwt_client.urls")),
     path('api/test/', TestView.as_view()),
 ]
 ```
@@ -568,7 +581,7 @@ As mentioned earlier, we have two services and auth-service and a client-service
 . We want the auth-service to be on `:8000` and the client-service to be at
 `:8001`.
 
-**This is important because it's how we configure the RemoteJWT's configuration
+**This is important because it's how we configure the easyjwt's configuration
 in the auth-service and client-service.**
 
 You'll need two terminals. One in auth-service/ and one in client-service/ both
@@ -683,32 +696,58 @@ curl \
 ```
 
 
-# Exta Data
+# Extra Data
 
-There may be situations where you want the Auth-Service to include additional User information that is passed
+There may be scenarios where you want the Auth-Service to include additional User information that is passed
 down to the Client-Services. One scenario for this may be having a centralised auth service, but customer's
-subscribe to the client services individually; this means a user may have access to service A but not service
-B.
+get access to the client services individually; Ie. a user may have access to service A but not service B.
+Think of this as maybe an Access Group with a access level attribute.
 
-This can easily be achieved by specifying and creating custom User Model Serializers. The config key for this
+This can achieved by specifying and creating custom User Model Serializers. The config key for this
 is "USER_MODEL_SERIALIZER" where you specify a serializer to use when parsing the User data returned from the
-Auth-Service, eg. "custom.serializers.CustomUserModelSerialzer".
+Auth-Service, eg. "custom.serializers.CustomUserModelSerialzer" or whatever you name the app and file.
 
 The Auth-Service serializer needs to expose ALL the data that will be needed by ALL Client-services. A Client-
 service needs to only parse the data relevant to it.
 I.e. it is possible to Client-services to have different custom serializers only recording the fields they
 individually care about.
 
+### NB
+
+You cannot use exactly the same serializer between the two services as the Client Service is required to
+override the create & update methods on the custom user Serializer.
+
+
+### Auth Service Config
+
+Create a new app, or prepare an existing one to hold your custom user data.
+
+`models.py`
 ```python
-class CustomUserFieldSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CustomUserField
-        fields = ("field1", "field2", "field3")
+class AccessGroup(models.Model):
+
+    user = models.OneToOneField(
+        User, related_name="accessgroup", on_delete=models.CASCADE
+    )
+    user_type = models.TextField()  # use a choices/enum field here.
 ```
 
-```python
-class CustomUserModelSerializer(serializers.ModelSerializer):
-    customuserfield = CustomUserFieldSerializer()
+Now we add the serializers to expose this data. Two are used because one represents the standard User object
+and the next is the serializer for the related AccessGroup model.
+
+`serializers.py`
+```
+class AccessGroupSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = AccessGroup
+        fields = (
+            "user_type",
+        )
+
+
+class TokenUserSerializer(serializers.ModelSerializer):
+    accessgroup = AccessGroupSerializer()
 
     class Meta:
         model = User
@@ -722,38 +761,93 @@ class CustomUserModelSerializer(serializers.ModelSerializer):
             "is_active",
             "is_staff",
             "is_superuser",
-            "customuserfield",
+            "accessgroup",
         )
-        # any read_only fields here will remove them from the validate_data stopping them from being updated
-        # in the client db.
+```
+
+Remember to change the Serializer the Django-EasyJWT will use to parse the user data by adding the following
+to the EASY_JWT dict in settings.py.
+
+```
+    "USER_MODEL_SERIALIZER": "userdata.serializer.TokenUserSerializer",
+```
+
+### Client Service Config
+
+Add the same AccessGroup modes from the auth service into an appropriate app. Create a new one if required.
+
+`models.py`
+```
+class AccessGroup(models.Model):
+
+    user = models.OneToOneField(
+        User, related_name="accessgroup", on_delete=models.CASCADE
+    )
+    user_type = models.TextField()  # use choices here in production.
+```
+
+Now we add the Serializers that will parse the info overriding the create and update methods so we can save
+the AccessGroup data cleanly.
+
+`serializers.py`
+```
+class AccessGroupSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = AccessGroup
+        fields = (
+            "user_type",
+        )
+
+
+class TokenUserSerializer(serializers.ModelSerializer):
+    accessgroup = AccessGroupSerializer()
+
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "first_name",
+            "email",
+            "last_name",
+            "date_joined",
+            "last_login",
+            "is_active",
+            "is_staff",
+            "is_superuser",
+            "accessgroup",
+        )
 
     def create(self, validated_data):
         """
-        DRF doesn't support nested serializers so we need to create the nested
+        DRF doesn't support writable nested serializers so we need to create the nested
         objects manually.
         """
 
-        user_id = validated_data.pop(USERNAME_FIELD)
-        customuserfield = validated_data.pop("customuserfield")
+        user_id = validated_data.pop(get_user_model().USERNAME_FIELD)
+        accessgroup = validated_data.pop("accessgroup")
         user, _ = User.objects.get_or_create(email=user_id, defaults=validated_data)
-        # Delete stale customuserfield data.
+        # Delete stale data.
         # It's stale because this payload is the latest truth.
-        user.customuserfield.delete()
+        try:
+            user.accessgroup.delete()
+        except AccessGroup.DoesNotExist:
+            pass
 
-        serializer = CustomUserFieldSerializer(data=customuserfield)
+        serializer = AccessGroupSerializer(data=accessgroup)
         serializer.is_valid(raise_exception=True)
         serializer.save(user=user)
 
         return user
 
     def update(self, instance, validated_data):
-        customuserfield = validated_data.pop("customuserfield")
-        # Delete stale customuserfield data.
-        # It's stale because this payload is the most recent truth.
-        instance.customuserfield.delete()
-        serializer = CustomUserFieldSerializer(data=customuserfield)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(user=instance)
+        accessgroup = validated_data.pop("accessgroup")
+        # Delete stale data.
+        # It's stale because auth service is the source of truth.
+        try:
+            instance.accessgroup.delete()
+        except AccessGroup.DoesNotExist:
+            pass
 
         instance.first_name = validated_data["first_name"]
         instance.last_name = validated_data["last_name"]
@@ -763,7 +857,18 @@ class CustomUserModelSerializer(serializers.ModelSerializer):
         instance.is_staff = validated_data["is_staff"]
         instance.is_superuser = validated_data["is_superuser"]
         instance.save()
+
+        serializer = AccessGroupSerializer(data=accessgroup)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user=instance)
+
         return instance
+```
+
+Again, we need to let the Django-EasyJWT know ho to parse the user data.
+
+```
+    "USER_MODEL_SERIALIZER": "userdata.serializer.TokenUserSerializer",
 ```
 
 Because, in this example, the extra data is being exposed as a nested serializer, you are required to override
@@ -782,12 +887,14 @@ access if they're not authed for this particular service.
 from rest_framework import permissions
 
 
-class CustomAccessPermission(permissions.BasePermission):
+class AccessGroupPermission(permissions.BasePermission):
     message = "You do not have permission to this service"
 
     def has_object_permission(self, request, view, obj):
         return request.user is not None
 
     def has_permission(self, request, view):
-        return request.user.customuserfield.field1 == "field1 value"
+        return (
+            not request.user.is_anonymous
+            and view.access_level.startswith(request.user.accessgroup.access_level)
 ```
