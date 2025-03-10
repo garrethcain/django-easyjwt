@@ -5,7 +5,18 @@ from rest_framework.response import Response
 
 from .authentication import AUTH_HEADER_TYPES
 from .exceptions import InvalidToken, TokenError
+from .serializers import CreateUserSerializer, PasswordChangeSerializer
 from .settings import api_settings
+
+
+class CreateUserView(generics.CreateAPIView):
+    permission_classes = ()
+    serializer_class = CreateUserSerializer
+
+
+class PasswordChangeView(generics.CreateAPIView):
+    permission_classes = ()
+    serializer_class = PasswordChangeSerializer
 
 
 class TokenViewBase(generics.GenericAPIView):
@@ -22,7 +33,7 @@ class TokenViewBase(generics.GenericAPIView):
         If serializer_class is set, use it directly. Otherwise get the class from settings.
         """
         if self.serializer_class:
-            return self.serializer_class
+            return self.serializer_class  # type: ignore
 
         try:
             serializer = import_string(self._serializer_class)

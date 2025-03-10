@@ -1,5 +1,6 @@
 from typing import Any, Dict, Optional, Type, TypeVar
 
+from django.http import Http404
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import AbstractBaseUser, update_last_login
@@ -28,7 +29,7 @@ class PasswordField(serializers.CharField):
 
 
 class TokenObtainSerializer(serializers.Serializer):
-    username_field = get_user_model().USERNAME_FIELD
+    username_field = get_user_model().USERNAME_FIELD  # type: ignore
     token_class: Optional[Type[Token]] = None
 
     default_error_messages = {"no_active_account": _("No active account found with the given credentials")}
@@ -61,7 +62,7 @@ class TokenObtainSerializer(serializers.Serializer):
 
     @classmethod
     def get_token(cls, user: AuthUser) -> Token:
-        return cls.token_class.for_user(user)  # type: ignore
+        return cls.token_class.for_user(user)
 
 
 class TokenObtainPairSerializer(TokenObtainSerializer):
@@ -73,7 +74,7 @@ class TokenObtainPairSerializer(TokenObtainSerializer):
         refresh = self.get_token(self.user)
 
         data["refresh"] = str(refresh)
-        data["access"] = str(refresh.access_token)
+        data["access"] = str(refresh.access_token)  # type: ignore
 
         if api_settings.UPDATE_LAST_LOGIN:
             update_last_login(None, self.user)
@@ -155,7 +156,10 @@ class TokenVerifySerializer(serializers.Serializer):
             and "easyjwt_auth.token_blacklist" in settings.INSTALLED_APPS
         ):
             jti = token.get(api_settings.JTI_CLAIM)
-            if BlacklistedToken.objects.filter(token__jti=jti).exists():
+            if (
+                api_settings.BLACKLIST_AFTER_ROTATION
+                and BlacklistedToken.objects.filter(token__jti=jti).exists()  # type: ignore
+            ):
                 raise ValidationError("Token is blacklisted")
 
         return {}
@@ -172,3 +176,79 @@ class TokenBlacklistSerializer(serializers.Serializer):
         except AttributeError:
             pass
         return {}
+
+
+class PasswordChangeSerializer(serializers.ModelSerializer):
+    username_field = get_user_model().USERNAME_FIELD  # type: ignore
+
+    password = serializers.CharField(
+        style={"input_type": "password"},
+        write_only=True,
+        required=True,
+    )
+    new_password = serializers.CharField(
+        style={"input_type": "password"},
+        write_only=True,
+        required=True,
+    )
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.fields[self.username_field] = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = get_user_model()
+        fields = (
+            # username_field added manually in __ini__
+            "password",
+            "new_password",
+        )
+
+    def create(self, validated_data):
+        authenticate_kwargs = {
+            self.username_field: validated_data[self.username_field],
+            "password": validated_data["password"],
+        }
+        try:
+            authenticate_kwargs["request"] = self.context["request"]
+        except KeyError:
+            pass
+
+        user = authenticate(**authenticate_kwargs)
+        if user:
+            user.set_password(validated_data["new_password"])
+            user.save()
+            return user
+        raise Http404("Resource not found")
+
+
+class CreateUserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(
+        style={"input_type": "password"},
+        write_only=True,
+        required=True,
+    )
+
+    class Meta:
+        model = get_user_model()
+        fields = (
+            "id",
+            "email",
+            "password",
+            "first_name",
+            "last_name",
+            "phone",
+        )
+        extra_kwargs = {
+            "first_name": {"required": False},
+            "last_name": {"required": False},
+            "phone": {"required": False},
+        }
+
+    def create(self, validated_data):
+        password = validated_data.pop("password")
+        user = get_user_model().objects.create(**validated_data)  # type: ignore
+        user.set_password(password)
+        user.save()
+        return user

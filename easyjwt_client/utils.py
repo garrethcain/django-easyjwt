@@ -22,11 +22,13 @@ class TokenManager:
 
     username_field = get_user_model().USERNAME_FIELD
 
-    def __request(self, path, payload) -> dict:
+    def __request(self, path, payload, extra_headers=None) -> dict:
         root_url = settings.EASY_JWT["REMOTE_AUTH_SERVICE_URL"]
         headers = {
             "content-type": "application/json",
         }
+        if extra_headers:
+            headers.update(extra_headers)
 
         try:
             response = requests.post(
@@ -47,12 +49,29 @@ class TokenManager:
                 f"Expected application/json but received {content_type}"
             )
 
-        if response.status_code != 200:
+        if response.status_code not in [200, 201]:
             raise exceptions.AuthenticationFailed(
                 response.json(),
                 code=response.status_code,
             )
         return response.json()
+
+    def get_csrf_token(self, path):
+        # first get the csrf token so we can satisfy the requirements.
+        root_url = settings.EASY_JWT["REMOTE_AUTH_SERVICE_URL"]
+        session = requests.Session()
+        _ = session.get(f"{root_url}/{path}")
+        csrftoken = session.cookies.get("csrftoken")
+        headers = {"X-CSRFToken": csrftoken}
+        return headers
+
+    def password_change(self, email, password, new_password):
+        payload = dict(
+            email=email,
+            password=password,
+            new_password=new_password,
+        )
+        return self.__request("/auth/password-change/", payload)
 
     def verify(self, token) -> dict:
         """
