@@ -1,7 +1,14 @@
-from django.urls import path
+from django.urls import path, include
 from .views import TokenUserDetailView
 
 
 urlpatterns = [
-    path("user/", TokenUserDetailView.as_view(), name="user_detail"),
+    path(
+        "user/",
+        include(
+            [
+                path("", TokenUserDetailView.as_view(), name="user_detail"),
+            ]
+        ),
+    ),
 ]
