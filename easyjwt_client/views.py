@@ -1,6 +1,7 @@
 from rest_framework import generics, permissions, response
 from django.contrib.auth.views import PasswordChangeView as BasePasswordChangeView
 from django.views.generic.base import RedirectView
+from django.views.generic import TemplateView
 from django.urls import reverse_lazy
 from django.conf import settings
 from django.http import HttpResponseRedirect
@@ -12,6 +13,10 @@ from .serializers import (
     TokenVerifySerializer,
 )
 from .utils import TokenManager
+
+
+class PasswordChangeDoneView(TemplateView):
+    template_name = "registration/password_change_done.html"
 
 
 class PasswordChangeView(BasePasswordChangeView):
