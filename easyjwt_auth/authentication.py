@@ -122,15 +122,15 @@ class JWTAuthentication(authentication.BaseAuthentication):
         try:
             user_id = validated_token[api_settings.USER_ID_CLAIM]
         except KeyError:
-            raise InvalidToken("Token contained no recognizable user identification")
+            raise InvalidToken(_("Token contained no recognizable user identification"))
 
         try:
-            user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})  # type: ignore
+            user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
         except self.user_model.DoesNotExist:
-            raise AuthenticationFailed("User not found", code="user_not_found")
+            raise AuthenticationFailed(_("User not found"), code="user_not_found")
 
         if not user.is_active:
-            raise AuthenticationFailed("User is inactive", code="user_inactive")
+            raise AuthenticationFailed(_("User is inactive"), code="user_inactive")
 
         if api_settings.CHECK_REVOKE_TOKEN:
             if validated_token.get(api_settings.REVOKE_TOKEN_CLAIM) != get_md5_hash_password(user.password):
