@@ -4,6 +4,7 @@ from typing import Tuple
 from base64 import b64decode
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from rest_framework import authentication, exceptions, HTTP_HEADER_ENCODING
 
 from .utils import TokenManager
