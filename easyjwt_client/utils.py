@@ -120,9 +120,8 @@ class TokenManager:
         auth_header_types = settings.EASY_JWT["AUTH_HEADER_TYPES"]
         root_url = settings.EASY_JWT["REMOTE_AUTH_SERVICE_URL"]
         path = settings.EASY_JWT["REMOTE_AUTH_SERVICE_USER_PATH"]
-        token = tokens.get("access") if isinstance(tokens, dict) else tokens
         headers: dict[str, str] = {
-            auth_header: f"{auth_header_types[0]} {token}",
+            auth_header: f"{auth_header_types[0]} {tokens.get('access') if isinstance(tokens, dict) else tokens}",
             "content-type": "application/json",
         }
 
