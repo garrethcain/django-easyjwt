@@ -105,7 +105,7 @@ class TokenManager:
 
         if create_local_user:
             # Do we need to do something with these objects?
-            user, created = self.__create_or_update_user(tokens)
+            _ = self._create_or_update_user(tokens)
         return tokens
 
     def __parse_auth_string(self, auth_string: str) -> Tuple[dict, dict, str]:
@@ -115,14 +115,14 @@ class TokenManager:
         # signature = b64decode(f"{signature}==")
         return (json.loads(header_str), json.loads(payload_str), signature)
 
-    def __create_or_update_user(self, tokens):
-        header_dict, payload_dict, signature = self.__parse_auth_string(tokens["access"])
+    def _create_or_update_user(self, tokens):
         auth_header = settings.EASY_JWT["AUTH_HEADER_NAME"]
         auth_header_types = settings.EASY_JWT["AUTH_HEADER_TYPES"]
         root_url = settings.EASY_JWT["REMOTE_AUTH_SERVICE_URL"]
         path = settings.EASY_JWT["REMOTE_AUTH_SERVICE_USER_PATH"]
+        token = tokens.get("access") if isinstance(tokens, dict) else tokens
         headers: dict[str, str] = {
-            auth_header: f"{auth_header_types[0]} {tokens.get('access')}",
+            auth_header: f"{auth_header_types[0]} {token}",
             "content-type": "application/json",
         }
 
