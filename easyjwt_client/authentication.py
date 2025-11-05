@@ -168,8 +168,9 @@ class EasyJWTAuthentication(authentication.BaseAuthentication):
         # We can trust the user id because we validated the signature against the remote
         # auth service to show it wasn't tampered with.
         user_id = payload_dict[settings.EASY_JWT["USER_ID_CLAIM"]]
+        kwargs = {settings.EASY_JWT["USER_ID_FIELD"]: user_id}
         try:
-            user = User.objects.get(id=user_id)
+            user = User.objects.get(**kwargs)
         except User.DoesNotExist as e:
             print("User does not exist:", str(e))
             user_details = self.__get_user_details(user_id, auth_string)
