@@ -4,7 +4,6 @@ from typing import Tuple
 from base64 import b64decode
 
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from rest_framework import authentication, exceptions, HTTP_HEADER_ENCODING
 
 from .utils import TokenManager
@@ -90,10 +89,9 @@ class EasyJWTAuthentication(authentication.BaseAuthentication):
         header, payload, signature = auth_string.split(".")
         header_str = b64decode(header)
         payload_str = b64decode(f"{payload}==")  # add padding back on.
-        # signature = b64decode(f"{signature}==")
         return (json.loads(header_str), json.loads(payload_str), signature)
 
-    def __get_user_details(self, user_id: int, jwt: str) -> dict:
+    def __get_user_details(self, jwt: str) -> dict:
         auth_header_types = settings.EASY_JWT["AUTH_HEADER_TYPES"]
         root_url = settings.EASY_JWT["REMOTE_AUTH_SERVICE_URL"]
         path = settings.EASY_JWT["REMOTE_AUTH_SERVICE_USER_PATH"]
@@ -154,7 +152,7 @@ class EasyJWTAuthentication(authentication.BaseAuthentication):
             msg = "Malformed Authorization Header"
             raise exceptions.AuthenticationFailed(msg) from e
 
-        # If they successfully specified a method but its not AUTH_HEADER_TYPE, pass
+        # If they successfully specified a method but it's not AUTH_HEADER_TYPE, pass
         # through, could be Basic auth or similar
         if auth_method not in settings.EASY_JWT["AUTH_HEADER_TYPES"]:
             return None
@@ -163,18 +161,10 @@ class EasyJWTAuthentication(authentication.BaseAuthentication):
         if not token_verified:
             raise exceptions.AuthenticationFailed(message.get("detail"))
 
-        # If we made it this far, we're legal. Let's see if we exist in the DB.
-        header_dict, payload_dict, signature = self.__parse_auth_string(auth_string)
-        # We can trust the user id because we validated the signature against the remote
-        # auth service to show it wasn't tampered with.
-        user_id = payload_dict[settings.EASY_JWT["USER_ID_CLAIM"]]
-        kwargs = {settings.EASY_JWT["USER_ID_FIELD"]: user_id}
-        try:
-            user = User.objects.get(**kwargs)
-        except User.DoesNotExist as e:
-            print("User does not exist:", str(e))
-            user_details = self.__get_user_details(user_id, auth_string)
-            user = User.objects.create(**user_details)
+        token_manager = TokenManager()
+        # We're already autheed by now, let's use their auth string to
+        # grab the uesr details so we can create or update the user.
+        user, _ = token_manager._create_or_update_user(auth_string)
         return (user, None)
 
     def authenticate_header(self, request):
