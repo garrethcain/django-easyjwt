@@ -145,7 +145,7 @@ class EasyJWTAuthentication(authentication.BaseAuthentication):
             raise exceptions.AuthenticationFailed(msg)
         # Except the case where the auth string is malformed, doesn't fit into the form <Method> <String>
         try:
-            auth_method, auth_string = auth_header.split(":")
+            auth_method, auth_string = auth_header.split(":") if ":" in auth_header else auth_header.split()
             auth_string = auth_string.strip()
         except ValueError as e:
             msg = "Malformed Authorization Header"
