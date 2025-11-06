@@ -18,33 +18,31 @@ class ModelBackend(authentication.BaseAuthentication):
     These two classes have been kept seperate on purpose.
     """
 
-    def authenticate(self, request, username=None, password=None):
+    def authenticate(self, request, username: str, password: str):
         """
         Override the authentication method to allow auth to collect
         a user from the remote authentication service.
         """
         tokenmanager = TokenManager()
         try:
-            _ = tokenmanager.authenticate(email=username, password=password)
-            return self._get_user_by_username(username=username)
+            _ = tokenmanager.authenticate(
+                create_local_user=True, **{settings.EASY_JWT["USER_ID_FIELD"]: username, "password": password}
+            )
+            return self._get_user_by_kwargs(username)
         except exceptions.AuthenticationFailed as e:
             print("Authentication exception:", e)
         return None
 
-    def _get_user_by_id(self, user_id):
+    def _get_user_by_kwargs(self, username: str):
+        """Used here to get a user by the USER_ID_FIELD in the settings"""
         try:
-            return User.object.get(pk=user_id)
-        except User.DoesNotExist:
-            return None
-
-    def _get_user_by_username(self, username):
-        try:
-            user = User.objects.get(email=username)
+            user = User.objects.get(**{settings.EASY_JWT["USER_ID_FIELD"]: username})
         except User.DoesNotExist:
             user = None
         return user
 
-    def get_user(self, user_id):
+    def get_user(self, user_id: int):
+        """Used by a view to rerieve a user object by pk for an already authenticated user"""
         try:
             return User.objects.get(pk=user_id)
         except User.DoesNotExist:
