@@ -9,9 +9,10 @@ from django.utils.functional import lazy
 
 def get_md5_hash_password(password: str) -> str:
     """
-    Returns MD5 hash of the given password
+    Returns SHA-256 hash of the given password.
+    Note: Function name kept for backwards compatibility.
     """
-    return hashlib.md5(password.encode()).hexdigest().upper()
+    return hashlib.sha256(password.encode()).hexdigest().upper()
 
 
 def make_utc(dt: datetime) -> datetime:
