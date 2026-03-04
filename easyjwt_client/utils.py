@@ -20,8 +20,27 @@ class TokenManager:
 
     username_field = get_user_model().USERNAME_FIELD
 
+    @staticmethod
+    def _handle_request_error(e: Exception) -> None:
+        """Shared error handler for HTTP request exceptions."""
+        if isinstance(e, requests.exceptions.ConnectionError):
+            raise exceptions.AuthenticationFailed("Authentication Service Connection Error.") from e
+        elif isinstance(e, requests.exceptions.Timeout):
+            raise exceptions.AuthenticationFailed("Authentication Service Timed Out.") from e
+        raise e
+
+    @staticmethod
+    def _get_request_settings() -> tuple:
+        """Get common request settings from Django settings."""
+        return (
+            settings.EASY_JWT.get("REMOTE_AUTH_REQUEST_TIMEOUT", 30),
+            settings.EASY_JWT.get("REMOTE_AUTH_SSL_VERIFY", True),
+        )
+
     def __request(self, path, payload, extra_headers=None) -> dict:
         root_url = settings.EASY_JWT["REMOTE_AUTH_SERVICE_URL"]
+        timeout = settings.EASY_JWT.get("REMOTE_AUTH_REQUEST_TIMEOUT", 30)
+        ssl_verify = settings.EASY_JWT.get("REMOTE_AUTH_SSL_VERIFY", True)
         headers = {
             "content-type": "application/json",
         }
@@ -31,9 +50,10 @@ class TokenManager:
         try:
             response = requests.post(
                 f"{root_url}{path}",
-                data=json.dumps(payload),
+                json=payload,
                 headers=headers,
-                verify=True,
+                timeout=timeout,
+                verify=ssl_verify,
             )
         except requests.exceptions.ConnectionError as e:
             raise exceptions.AuthenticationFailed("Authentication Service Connection Error.") from e
@@ -53,15 +73,6 @@ class TokenManager:
                 code=response.status_code,
             )
         return response.json()
-
-    def get_csrf_token(self, path):
-        # first get the csrf token so we can satisfy the requirements.
-        root_url = settings.EASY_JWT["REMOTE_AUTH_SERVICE_URL"]
-        session = requests.Session()
-        _ = session.get(f"{root_url}/{path}")
-        csrftoken = session.cookies.get("csrftoken")
-        headers = {"X-CSRFToken": csrftoken}
-        return headers
 
     def password_change(self, email, password, new_password):
         payload = dict(
@@ -106,12 +117,13 @@ class TokenManager:
         return tokens
 
     def _create_or_update_user(self, tokens):
-        auth_header = settings.EASY_JWT["AUTH_HEADER_NAME"]
         auth_header_types = settings.EASY_JWT["AUTH_HEADER_TYPES"]
         root_url = settings.EASY_JWT["REMOTE_AUTH_SERVICE_URL"]
         path = settings.EASY_JWT["REMOTE_AUTH_SERVICE_USER_PATH"]
+        timeout, ssl_verify = self._get_request_settings()
+
         headers: dict[str, str] = {
-            auth_header: f"{auth_header_types[0]} {tokens.get('access') if isinstance(tokens, dict) else tokens}",
+            "Authorization": f"{auth_header_types[0]} {tokens.get('access') if isinstance(tokens, dict) else tokens}",
             "content-type": "application/json",
         }
 
@@ -121,11 +133,10 @@ class TokenManager:
 
         with requests.Session() as session:
             try:
-                response = session.send(prepped)
-            except requests.exceptions.ConnectionError as e:
-                raise exceptions.AuthenticationFailed("Authentication Service Connection Error.") from e
-            except requests.exceptions.Timeout as e:
-                raise exceptions.AuthenticationFailed("Authentication Service Timed Out.") from e
+                response = session.send(prepped, timeout=timeout, verify=ssl_verify)
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                self._handle_request_error(e)
+
         if response.status_code != 200:
             raise exceptions.AuthenticationFailed(response.text)
 
