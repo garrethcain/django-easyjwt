@@ -47,10 +47,8 @@ class TokenObtainPairSerializer(TokenObtainSerializer):
 
 
 class TokenRefreshSerializer(serializers.Serializer):
-    # There is technically no JWT length limit.
     refresh = serializers.CharField()
 
 
 class TokenVerifySerializer(serializers.Serializer):
-    # There is technically no JWT length limit.
     token = serializers.CharField()
