@@ -26,11 +26,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e .
-          pip install pytest pytest-django pytest-cov responses
+          pip install -e .[dev]
       
       - name: Run tests
-        run: pytest tests/ -v --cov=easyjwt_auth --cov=easyjwt_client
+        run: python -m pytest tests/ -v --cov=easyjwt_auth --cov=easyjwt_client
 
   release:
     name: Semantic Release
