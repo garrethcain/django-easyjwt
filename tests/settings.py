@@ -61,6 +61,8 @@ EASY_JWT = {
     "REMOTE_AUTH_SERVICE_REFRESH_PATH": "/auth/token/refresh/",
     "REMOTE_AUTH_SERVICE_VERIFY_PATH": "/auth/token/verify/",
     "REMOTE_AUTH_SERVICE_USER_PATH": "/auth/user/",
+    "REMOTE_AUTH_REQUEST_TIMEOUT": 30,  # Timeout in seconds for HTTP requests
+    "REMOTE_AUTH_SSL_VERIFY": True,  # Enable SSL certificate verification
     "USER_MODEL_SERIALIZER": "easyjwt_user.serializers.TokenUserSerializer",
 }
 

@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 import responses as responses_mock
 
 from rest_framework import exceptions
-from easyjwt_client.authentication import EasyJWTAuthentication, ModelBackend
+from easyjwt_client.authentication import EasyJWTAuthentication, RemoteAuthBackend
 
 
 @pytest.mark.django_db
@@ -106,7 +106,7 @@ class TestEasyJWTAuthentication:
 
 
 @pytest.mark.django_db
-class TestModelBackend:
+class TestRemoteAuthBackend:
     def test_authenticate_returns_user(self, user):
         with responses_mock.RequestsMock() as rsps:
             rsps.add(
@@ -127,7 +127,7 @@ class TestModelBackend:
                 status=200,
             )
 
-            backend = ModelBackend()
+            backend = RemoteAuthBackend()
             result = backend.authenticate(None, username="test@example.com", password="testpass123")
 
             assert result is not None
@@ -142,19 +142,19 @@ class TestModelBackend:
                 status=401,
             )
 
-            backend = ModelBackend()
+            backend = RemoteAuthBackend()
             result = backend.authenticate(None, username="wrong@example.com", password="wrongpass")
 
             assert result is None
 
     def test_get_user_returns_user(self, user):
-        backend = ModelBackend()
+        backend = RemoteAuthBackend()
         result = backend.get_user(user.id)
 
         assert result == user
 
     def test_get_user_not_found_returns_none(self):
-        backend = ModelBackend()
+        backend = RemoteAuthBackend()
         result = backend.get_user(999999)
 
         assert result is None
