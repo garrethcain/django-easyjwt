@@ -1,9 +1,74 @@
 [build-system]
-requires = [
-    "setuptools>=61.0.0",
-    "wheel"
-]
+requires = ["setuptools>=61.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "django-easyjwt"
+version = "0.7.6"
+description = "A convenient package for building both client and server implementations for JWTs or Json Web Tokens. It allows you to build either side by only including the module you need and includes an optional custom user model."
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Garreth Cain", email = "garrethccain@gmail.com"}
+]
+requires-python = ">=3.8"
+classifiers = [
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Django :: 3.2",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: WWW/HTTP",
+]
+dependencies = [
+    "Django >= 3.2",
+    "djangorestframework >= 3.12.4",
+    "requests >= 2.24.0",
+    "PyJWT >= 2.8.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/garrethcain/django-easyjwt"
+Repository = "https://github.com/garrethcain/django-easyjwt"
+
+[tool.setuptools]
+packages = ["easyjwt_auth", "easyjwt_client", "easyjwt_user"]
+
 [tool.ruff]
-line-length=110
+line-length = 110
+
+[tool.semantic_release]
+version_variable = "easyjwt_auth/__init__.py:__version__"
+version_toml = ["pyproject.toml:project.version"]
+branch = "master"
+upload_to_pypi = true
+upload_to_repository = true
+build_command = "python -m build"
+dist_path = "dist/"
+changelog_file = "CHANGELOG.md"
+commit_version_number = true
+commit_subject = "chore(release): {version}"
+commit_author = "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
+
+[tool.semantic_release.commit_parser_options]
+allowed_tags = ["build", "chore", "ci", "docs", "feat", "fix", "perf", "refactor", "style", "test"]
+minor_tags = ["feat"]
+patch_tags = ["fix", "perf"]
+
+[tool.semantic_release.branches.master]
+match = "(master|main)"
+prerelease = false
+
+[tool.semantic_release.publish]
+dist_glob_patterns = ["dist/*"]
+upload_to_vcs_release = true
