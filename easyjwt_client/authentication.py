@@ -1,7 +1,6 @@
 import json
 import requests
 from typing import Tuple
-from base64 import b64decode
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -26,17 +25,17 @@ class ModelBackend(authentication.BaseAuthentication):
         tokenmanager = TokenManager()
         try:
             _ = tokenmanager.authenticate(
-                create_local_user=True, **{settings.EASY_JWT["USER_ID_FIELD"]: username, "password": password}
+                create_local_user=True, **{User.USERNAME_FIELD: username, "password": password}
             )
             return self._get_user_by_kwargs(username)
-        except exceptions.AuthenticationFailed as e:
-            print("Authentication exception:", e)
+        except exceptions.AuthenticationFailed:
+            pass
         return None
 
     def _get_user_by_kwargs(self, username: str):
         """Used here to get a user by the USER_ID_FIELD in the settings"""
         try:
-            user = User.objects.get(**{settings.EASY_JWT["USER_ID_FIELD"]: username})
+            user = User.objects.get(**{User.USERNAME_FIELD: username})
         except User.DoesNotExist:
             user = None
         return user
@@ -56,8 +55,6 @@ class EasyJWTAuthentication(authentication.BaseAuthentication):
         headers = {
             "content-type": "application/json",
         }
-        resp_code = 200
-        resp_dict = {}
 
         try:
             response = requests.post(
@@ -77,18 +74,10 @@ class EasyJWTAuthentication(authentication.BaseAuthentication):
                 f"Authentication Service response has incorrect content-type. Expected application/json but received {content_type}"
             )
 
-        # TODO: Fix this up.
         if response.status_code != 200:
-            resp_code = response.status_code
-            resp_dict = response.json()
+            return (False, response.json())
 
-        return (resp_code == 200, resp_dict)
-
-    def __parse_auth_string(self, auth_string: str) -> Tuple[dict, dict, str]:
-        header, payload, signature = auth_string.split(".")
-        header_str = b64decode(header)
-        payload_str = b64decode(f"{payload}==")  # add padding back on.
-        return (json.loads(header_str), json.loads(payload_str), signature)
+        return (True, {})
 
     def __get_user_details(self, jwt: str) -> dict:
         auth_header_types = settings.EASY_JWT["AUTH_HEADER_TYPES"]
@@ -143,9 +132,8 @@ class EasyJWTAuthentication(authentication.BaseAuthentication):
         elif len(auth_header.split(" ")) > 2:
             msg = "Invalid basic header. Credentials string should not contain spaces."
             raise exceptions.AuthenticationFailed(msg)
-        # Except the case where the auth string is malformed, doesn't fit into the form <Method> <String>
         try:
-            auth_method, auth_string = auth_header.split(":") if ":" in auth_header else auth_header.split()
+            auth_method, auth_string = auth_header.split(" ", 1)
             auth_string = auth_string.strip()
         except ValueError as e:
             msg = "Malformed Authorization Header"

@@ -1,6 +1,4 @@
 import json
-from base64 import b64decode
-from typing import Tuple
 
 import requests
 from django.conf import settings
@@ -104,16 +102,8 @@ class TokenManager:
         tokens = self.__request(path, payload)
 
         if create_local_user:
-            # Do we need to do something with these objects?
             _ = self._create_or_update_user(tokens)
         return tokens
-
-    def __parse_auth_string(self, auth_string: str) -> Tuple[dict, dict, str]:
-        header, payload, signature = auth_string.split(".")
-        header_str = b64decode(header)
-        payload_str = b64decode(f"{payload}==")  # add padding back on.
-        # signature = b64decode(f"{signature}==")
-        return (json.loads(header_str), json.loads(payload_str), signature)
 
     def _create_or_update_user(self, tokens):
         auth_header = settings.EASY_JWT["AUTH_HEADER_NAME"]
@@ -144,6 +134,9 @@ class TokenManager:
             existing_user = User.objects.get(**{self.username_field: user_dict[self.username_field]})
         except User.DoesNotExist:
             existing_user = None
+
+        is_new_user = existing_user is None
+
         try:
             serializer = import_string(api_settings.USER_MODEL_SERIALIZER)
             s = serializer(
@@ -154,10 +147,7 @@ class TokenManager:
                     "raw_data": user_dict,
                 },
             )
-            # Use False here so the user isn't presented with the serializer
-            # we just want them to see the error below.
-            created = s.is_valid(raise_exception=False)
-            if not created:
+            if not s.is_valid(raise_exception=False):
                 raise exceptions.AuthenticationFailed(
                     f"Integrity error with USER_MODEL_SERIALIZER: {api_settings.USER_MODEL_SERIALIZER} "
                     "failed to parse the received payload from the auth server."
@@ -167,10 +157,7 @@ class TokenManager:
             msg = f"Could not import serializer '{api_settings.USER_MODEL_SERIALIZER}'"
             raise ImportError(msg)
         except IntegrityError as e:
-            # This is most likely caused by having two different User models.
-            # Eg. a Custom User model in Auth-Service and a vanilla User in
-            # your client project.
             raise exceptions.AuthenticationFailed(
                 f"Integrity error with user from Authentication Service. Different User models? {e}"
             ) from e
-        return (user, created)
+        return (user, is_new_user)
