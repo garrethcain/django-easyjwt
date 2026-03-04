@@ -12,6 +12,13 @@ from .settings import api_settings
 from .tokens import Token
 from .utils import get_md5_hash_password
 
+__all__ = [
+    "JWTAuthentication",
+    "JWTStatelessUserAuthentication",
+    "JWTTokenUserAuthentication",
+    "default_user_authentication_rule",
+]
+
 AUTH_HEADER_TYPES = api_settings.AUTH_HEADER_TYPES
 
 if not isinstance(api_settings.AUTH_HEADER_TYPES, (list, tuple)):

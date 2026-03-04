@@ -156,10 +156,7 @@ class TokenVerifySerializer(serializers.Serializer):
             and "easyjwt_auth.token_blacklist" in settings.INSTALLED_APPS
         ):
             jti = token.get(api_settings.JTI_CLAIM)
-            if (
-                api_settings.BLACKLIST_AFTER_ROTATION
-                and BlacklistedToken.objects.filter(token__jti=jti).exists()  # type: ignore
-            ):
+            if BlacklistedToken.objects.filter(token__jti=jti).exists():
                 raise ValidationError("Token is blacklisted")
 
         return {}

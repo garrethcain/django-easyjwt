@@ -8,6 +8,11 @@ from rest_framework import authentication, exceptions, HTTP_HEADER_ENCODING
 
 from .utils import TokenManager
 
+__all__ = [
+    "RemoteAuthBackend",
+    "EasyJWTAuthentication",
+]
+
 User = get_user_model()
 
 
