@@ -13,6 +13,8 @@ DEFAULTS = {
     "REMOTE_AUTH_SERVICE_REFRESH_PATH": "/auth/token/refresh/",  # The path to refresh a token
     "REMOTE_AUTH_SERVICE_VERIFY_PATH": "/auth/token/verify/",  # The path to verify a token
     "REMOTE_AUTH_SERVICE_USER_PATH": "/auth/user/",  # the path to get the user object from the remote auth service
+    "REMOTE_AUTH_REQUEST_TIMEOUT": 30,  # Timeout in seconds for HTTP requests
+    "REMOTE_AUTH_SSL_VERIFY": True,  # Enable SSL certificate verification
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
     "USER_MODEL_SERIALIZER": "easyjwt_user.serializers.TokenUserSerializer",

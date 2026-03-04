@@ -11,7 +11,7 @@ from .utils import TokenManager
 User = get_user_model()
 
 
-class ModelBackend(authentication.BaseAuthentication):
+class RemoteAuthBackend(authentication.BaseAuthentication):
     """
     Allows views to authenticate against the remote backend.
     These two classes have been kept seperate on purpose.
@@ -52,6 +52,8 @@ class EasyJWTAuthentication(authentication.BaseAuthentication):
     def __verify_token(self, jwt: str) -> Tuple[bool, dict]:
         root_url = settings.EASY_JWT["REMOTE_AUTH_SERVICE_URL"]
         path = settings.EASY_JWT["REMOTE_AUTH_SERVICE_VERIFY_PATH"]
+        timeout = settings.EASY_JWT.get("REMOTE_AUTH_REQUEST_TIMEOUT", 30)
+        ssl_verify = settings.EASY_JWT.get("REMOTE_AUTH_SSL_VERIFY", True)
         headers = {
             "content-type": "application/json",
         }
@@ -61,17 +63,17 @@ class EasyJWTAuthentication(authentication.BaseAuthentication):
                 f"{root_url}{path}",
                 data=json.dumps({"token": jwt}),
                 headers=headers,
-                verify=True,
+                timeout=timeout,
+                verify=ssl_verify,
             )
-        except requests.exceptions.ConnectionError as e:
-            raise exceptions.AuthenticationFailed("Authentication Service Connection Error.") from e
-        except requests.exceptions.Timeout as e:
-            raise exceptions.AuthenticationFailed("Authentication Service Timed Out.") from e
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            TokenManager._handle_request_error(e)
 
         content_type = response.headers.get("Content-Type")
         if content_type != "application/json":
             raise exceptions.AuthenticationFailed(
-                f"Authentication Service response has incorrect content-type. Expected application/json but received {content_type}"
+                f"Authentication Service response has incorrect content-type. "
+                f"Expected application/json but received {content_type}"
             )
 
         if response.status_code != 200:
@@ -83,21 +85,23 @@ class EasyJWTAuthentication(authentication.BaseAuthentication):
         auth_header_types = settings.EASY_JWT["AUTH_HEADER_TYPES"]
         root_url = settings.EASY_JWT["REMOTE_AUTH_SERVICE_URL"]
         path = settings.EASY_JWT["REMOTE_AUTH_SERVICE_USER_PATH"]
+        timeout = settings.EASY_JWT.get("REMOTE_AUTH_REQUEST_TIMEOUT", 30)
+        ssl_verify = settings.EASY_JWT.get("REMOTE_AUTH_SSL_VERIFY", True)
         headers: dict[str, str] = {
             "Authorization": f"{auth_header_types[0]} {jwt}",
             "content-type": "application/json",
         }
+
         request = requests.Request("GET", f"{root_url}{path}", data={}, headers=headers)
         prepped = request.prepare()
         prepped.headers.update(headers)
 
         with requests.Session() as session:
             try:
-                response = session.send(prepped)
-            except requests.exceptions.ConnectionError as e:
-                raise exceptions.AuthenticationFailed("Authentication Service Connection Error.") from e
-            except requests.exceptions.Timeout as e:
-                raise exceptions.AuthenticationFailed("Authentication Service Timed Out.") from e
+                response = session.send(prepped, timeout=timeout, verify=ssl_verify)
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                TokenManager._handle_request_error(e)
+
         if response.status_code != 200:
             raise exceptions.AuthenticationFailed(response.json())
         return json.loads(response.text)
@@ -108,9 +112,6 @@ class EasyJWTAuthentication(authentication.BaseAuthentication):
 
         Hide some test client ickyness where the header can be unicode.
         """
-        ## The below will only see the Authorization header.
-        # auth = request.META.get(settings.REMOTE_JWT["AUTH_HEADER_NAME"], b'')
-        # auth = request.headers.get(settings.REMOTE_JWT["AUTH_HEADER_NAME"], b'')
         auth = request.headers.get("Authorization")
         if isinstance(auth, str):
             auth = auth.encode(HTTP_HEADER_ENCODING)
@@ -120,11 +121,9 @@ class EasyJWTAuthentication(authentication.BaseAuthentication):
         """
         Validates a JWT against a remote authentication service.
         """
-        # Is the user trying to actually use the HTTP Authorization header?
         auth_header = self.__get_authorization_header(request)
 
         if auth_header is None:
-            # Might not be a request for this service.
             return None
         elif len(auth_header.split(" ")) == 1:
             msg = "Invalid basic header. No credentials provided."
@@ -139,8 +138,6 @@ class EasyJWTAuthentication(authentication.BaseAuthentication):
             msg = "Malformed Authorization Header"
             raise exceptions.AuthenticationFailed(msg) from e
 
-        # If they successfully specified a method but it's not AUTH_HEADER_TYPE, pass
-        # through, could be Basic auth or similar
         if auth_method not in settings.EASY_JWT["AUTH_HEADER_TYPES"]:
             return None
 
@@ -149,8 +146,6 @@ class EasyJWTAuthentication(authentication.BaseAuthentication):
             raise exceptions.AuthenticationFailed(message.get("detail"))
 
         token_manager = TokenManager()
-        # We're already autheed by now, let's use their auth string to
-        # grab the uesr details so we can create or update the user.
         user, _ = token_manager._create_or_update_user(auth_string)
         return (user, None)
 
