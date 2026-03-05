@@ -1,202 +1,125 @@
 # Django-EasyJWT
 
-This is a package for the implementation of a remote authentication backend
-for Django apps, primarily meant for use with JWTs, also supporting sessions as
-well. Ie. elevated users could log into the Django `/admin/` once authenticated.
-The target is microservice ecosystems, with several independant services all
-authenticating against a central authentication services, or CAS with permissions
-and other custom user data able to be used in the authentication and Authorization
-process.
+[![PyPI version](https://badge.fury.io/py/django-easyjwt.svg)](https://pypi.org/project/django-easyjwt/)
+[![Python](https://img.shields.io/pypi/pyversions/django-easyjwt.svg)](https://pypi.org/project/django-easyjwt/)
+[![Django](https://img.shields.io/badge/Django-3.2%20%7C%204.x%20%7C%205.0-green.svg)](https://www.djangoproject.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-### Why does this exist?
+A Django package for implementing remote JWT authentication in microservice architectures. It provides a centralized authentication service with multiple client services authenticating against it.
 
-I once had a several services with the same users; so I created a a centralised authentication
-service to avoid the confusion of different passwords on, what to the outside, appeared to be
-the same service. Then we added more services, but not all users were allowed access to
-these, which is where the extra data came from.
+## Table of Contents
 
-Then some of our customer decided they wanted to also have this notion of users, staff and
-admins; but we'd already used Django's built in solution for our staff. So we extended the
-extra data to include permissions too.
+- [Why Django-EasyJWT?](#why-django-easyjwt)
+- [Features](#features)
+- [Installation](#installation)
+- [Architecture Overview](#architecture-overview)
+- [Quick Start](#quick-start)
+  - [Create an Auth-Service](#create-an-auth-service)
+  - [Create a Client-Service](#create-a-client-service)
+  - [Standing up the Services](#standing-up-the-services)
+- [Configuration Reference](#configuration-reference)
+- [API Endpoints](#api-endpoints)
+- [Testing the API](#testing-the-api)
+- [Advanced Usage](#advanced-usage)
+  - [Extra Data](#extra-data)
+  - [Permissions](#permissions)
+- [Running Tests](#running-tests)
+- [Changelog](#changelog)
+- [Acknowledgements](#acknowledgements)
+- [License](#license)
 
-The PyPi package can be found here: https://pypi.org/project/django-easyjwt
+---
 
-ACKNOWLEDGEMENTS
-This package is heavily based on Djangorestframework_simplejwt and heavily influenced by SimpleJWT.
+## Why Django-EasyJWT?
 
-This package is used in the example
-[auth-client-service-example](https://github.com/garrethcain/django-easyjwt-example)
-project.
+When managing multiple services with the same users, a centralized authentication service eliminates password confusion and provides a single source of truth. Django-EasyJWT was built for scenarios where:
 
-# Change Log
+- Multiple services share the same user base
+- Different services require different access levels
+- You need custom user data and permissions passed through authentication
+- You want to keep your auth service lean and behind a private network
 
-2024-03-19 - 4.0.2
-    - removed dependency from easyjwt_user migrations.
-    - added raw_data to the context var of the custom serializer so custom data stripped by the serializer
-      can still be accessed.
-    - Changed the exception raise for a remote user model to show text and not try parse to json.
+---
 
-# How To
+## Features
 
-There are, at a minimum, two components required for this to work;
+- **JWT Authentication**: Access and refresh token support
+- **Remote Auth**: Client services authenticate against a central auth service
+- **Session Support**: Authenticated users can access Django admin
+- **Custom User Model**: Optional email-based user model included
+- **Token Blacklisting**: Optional token revocation support
+- **Extensible**: Custom serializers for additional user data
+- **Configurable Timeouts**: HTTP request timeouts and SSL verification
 
-1. An Auth-Service, to authenticate against,
-2. A Client-Service, users want to use.
+---
 
-This package is made of of three sub-packages; easyjwt-Auth, RemoteJWT-Client, and RemoteJWT-User.
-With the Auth & Client used in the separate Auth and Client services and the User being used in both,
-or neither.
+## Installation
 
-The idea being that you can have any number of client-services using the same
-auth-service to validate login requests and your auth-service is behind some
-kind of private network and not public facing.
-
-This package is a wrapper for all the main components of the auth-service and client-service; eg.
-
-* /token/ to obtain an access and a refresh token,
-    and create/update the local instance.
-* /token/refresh/ to refresh an expired access token.
-* /token/verify/ to confirm if a token is valid or not.
-
-The above urls in the client-service just proxy requests to the remote
-Auth-Service, configured in `settings.py` `EASY_JWT` dict, but creating a
-local user object if required.
-
-All that is needed is to add the Django-EasyJWT URLs to your client-service. The
-auth-service remains mostly vanilla aside from maybe using a custom User model,
-include in this package as well, for convenience.
-
-You can't create users in the local client-service!
-If you retrieve a user from the auth-service with the same ID you will overwrite
-the local record with data from the auth-service.
-
-Your project can use HMAC by implementing some HMAC backend locally. The HMAC
-keys will be kept local to the service and not centralised in the Auth-Service.
-The Auth-Service is intentionally kept lean and only handles "users".
-
-
-# Get Started
-
-What we'll be doing;
-
-1. Create an Auth-Service
-2. Create a Client-Service
-
-
-
-## Create an Auth-Service
-
-Always upgrade pip first.
-```
-$ pip install --upgrade pip
+```bash
+uv pip install django-easyjwt
 ```
 
-Create a temporary virtual environment to install django so we can create a
-project.
-```
-$ python -m virtualenv .venv
+Or with pip:
+
+```bash
+pip install django-easyjwt
 ```
 
-Activate the virtual environment.
-```
-$ source .venv/bin/activate
-```
+---
 
-Your terminal should look something like this;
-
-`(.venv)  user@domain  ~/Code/ `
-
-With the `(.venv)` part implying you're currently inside a virtual environment.
-
-Install Django so we can create our app.
-```
-$ pip install django
-```
-
-Create our project with the name `config` so the nested directory is named more
-conveniently.
-```PYTHON
-$ django-admin startproject config
-```
-
-Rename the outer directory because I personally like having the project's config
-kept in a directory called `config` with the outer directory the name of
-project.
-```PYTHON
-$ mv config auth-service
-```
-
-You should have a directory structure similar to this.
-```
-─── auth-service
-    ├── config
-    │   ├── __init__.py
-    │   ├── asgi.py
-    │   ├── settings.py
-    │   ├── urls.py
-    │   └── wsgi.py
-    └── manage.py
-```
-
-Now let's remove the temp virtual environment by deactivating, deleting the old
-one, then creating a new on in the right place.
-```
-$ deactivate
-```
-
-Your terminal should be back to something like this;
-`user@domain  ~/Code/ `
-
-Delete the files.
-```
-$ rm -Rf .venv
-```
+## Architecture Overview
 
 ```
-$ cd auth-service
+┌─────────────────┐         ┌─────────────────┐
+│  Client-Service │ ──────► │   Auth-Service  │
+│   (Port 8001)   │         │   (Port 8000)   │
+├─────────────────┤         ├─────────────────┤
+│ easyjwt_client  │         │  easyjwt_auth   │
+│ easyjwt_user    │         │  easyjwt_user   │
+└─────────────────┘         └─────────────────┘
+        │                           │
+        ▼                           ▼
+   Local DB                     Auth DB
+ (User copies)              (User source)
 ```
 
-Create another virtual environment.
-```
-$ python -m virtualenv .venv
+The package contains three sub-packages:
+
+| Package          | Used In         | Purpose                                    |
+| ---------------- | --------------- | ------------------------------------------ |
+| `easyjwt_auth`   | Auth-Service    | JWT token generation and validation        |
+| `easyjwt_client` | Client-Service  | Remote authentication against auth-service |
+| `easyjwt_user`   | Both (optional) | Custom user model with email as username   |
+
+---
+
+## Quick Start
+
+### Create an Auth-Service
+
+```bash
+uv venv
+source .venv/bin/activate
+uv pip install django djangorestframework django_easyjwt
+uv run django-admin startproject config
+mv config auth-service
+cd auth-service
 ```
 
-Activate the virtual environment, again. We'll keep this one this time.
-```
-$ source .venv/bin/activate
-```
+Add to `config/settings.py`:
 
-Again, your terminal should look something like this;
-`(.venv)  user@domain  ~/Code/auth-service/ `
+```python
+from datetime import timedelta
 
-Install the packages we're going to use.
-```
-$ pip install django django_rest_framework django_easyjwt
-```
-
-Open `config/settings.py` and add the apps we'll be using to `INSTALLED_APPS`;
-
-```PY
 INSTALLED_APPS = [
-    ...
+    # ...
     'rest_framework',
     'easyjwt_auth',
     'easyjwt_user',
 ]
-```
 
-We've included `easyjwt_user` so we can use the same User model between
-all services. It also includes some convieniences such as update forms and
-changes the Username field from `username` to `email`.
-
-Tell Django about the new user model by adding;
-```py
 AUTH_USER_MODEL = "easyjwt_user.User"
-```
 
-Next we need to configure Django Rest Framework. For this example you need just
-the following;
-```PYTHON
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -204,11 +127,7 @@ REST_FRAMEWORK = {
         "easyjwt_auth.authentication.JWTAuthentication",
     ),
 }
-```
 
-In order to use easyjwt-Auth you will also need to add some configuration for it.
-
-```PY
 EASY_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
@@ -216,7 +135,7 @@ EASY_JWT = {
     "BLACKLIST_AFTER_ROTATION": False,
     "UPDATE_LAST_LOGIN": False,
     "ALGORITHM": "HS256",
-    "SIGNING_KEY": "d577273ff885c3f84dadb8578bb40000", # You must set this correctly for Production.
+    "SIGNING_KEY": "d577273ff885c3f84dadb8578bb40000",  # Set properly for production!
     "VERIFYING_KEY": None,
     "AUDIENCE": None,
     "ISSUER": None,
@@ -235,319 +154,84 @@ EASY_JWT = {
 }
 ```
 
-In the JWT configuration we use `timedelta` so you need to import `timedelta` at
-the top of `config/settings.py`.
+Add to `config/urls.py`:
 
-`from datetime import timedelta`
+```python
+from django.urls import path, include
 
-Make migrations so we can migrate.
-```
-$ python manage.py makemigrations
-```
-
-Migrate to create the database. An SQLite db is fine for the example. In a
-production environment you'd use something a bit more appropriate like PostreSQL or DynamoDB.
-```
-$ python manage.py migrate
-```
-
-And finally you can stand up the auth-service with;
-```
-$ python manage.py runserver
-```
-
-Which should get you something like;
-```
-Watching for file changes with StatReloader
-Performing system checks...
-
-System check identified no issues (0 silenced).
-May 02, 2023 - 10:50:48
-Django version 4.0.2, using settings 'config.settings'
-Starting development server at http://127.0.0.1:8000/
-Quit the server with CONTROL-C.
-```
-
-Hit `^C` so we can create a few users for testing with later on.
-
-We're going to create three test users as below.
-* admin | admin@test.com | admin-pass
-* staff | staff@test.com | staff-pass
-* user | user@test.com | user-pass
-
-Eg.
-```
-export DJANGO_SUPERUSER_EMAIL=admin@test.com
-export DJANGO_SUPERUSER_USERNAME=admin
-export DJANGO_SUPERUSER_PASSWORD=admin-pass
-python manage.py createsuperuser --noinput
-```
-or
-```
-$ python manage.py createsuperuser
-```
-Then stand up the auth-service and log into `http://127.0.0.1:8000/admin/` login
-with the superuser you created above and create the other two users, setting
-`is_staff=True` for the staff user.
-Log out once you're done and terminate the instance that's running with `^C` and
-deactivate this virtual environment.
-```
-$ deactivate
-```
-
-The final step is to configure the Urls. So open `config/urls.py` and add the
-following.
-
-Then expost the paths to the JWT endpoints and a user view which is where the
-client-service will download the user from.
-```py
 urlpatterns = [
-    ...
-    path('auth/', include('easyjwt_auth.urls')),  # gives us access to the auth views.
-    path('auth/', include('easyjwt_user.urls')),  # gives us access to the users views.
+    # ...
+    path('auth/', include('easyjwt_auth.urls')),
+    path('auth/', include('easyjwt_user.urls')),
 ]
 ```
 
-And that's it for the Auth-Service. It doesn't need any views or serializers.
-Everything is handled by easyjwt-Auth and Django's OEM methods. This service is
-super light to run and will handle many requests with ease.
+Run migrations and create a superuser:
+
+```bash
+uv run python manage.py makemigrations
+uv run python manage.py migrate
+uv run python manage.py createsuperuser
+uv run python manage.py runserver 0.0.0.0:8000
+```
 
 ---
-## Create a Client-Service
 
-Now we need a client-service that will authenticate against the Auth-Service to
-complete the example.
+### Create a Client-Service
 
-Go up one directory;
-```
+```bash
 cd ..
+uv venv
+source .venv/bin/activate
+uv pip install django django_rest_framework django_easyjwt
+uv run django-admin startproject config
+mv config client-service
+cd client-service
 ```
 
-We're going to perform the same steps for the client-service that we did for the
-auth-service. You should recognise most of this. The main difference is that
-this time we'll be using `django_easyjwt` and not creating any local users.
+Add to `config/settings.py`:
 
-
-Create a temporary virtual environment to install django so we can create a
-project.
-```
-$ python -m virtualenv .venv
-```
-
-Activate the virtual environment.
-```
-$ source .venv/bin/activate
-```
-
-Your terminal should look something like this;
-
-`(.venv)  user@domain  ~/Code/ `
-
-With the `(.venv)` part implying you're currently inside a virtual environment.
-
-Install Django so we can create our app.
-```
-$ pip install django
-```
-
-Create our project with the name `config` so the nested directory is named more
-conveniently.
-```PYTHON
-$ django-admin startproject config
-```
-
-Rename the outer directory because I personally like having the project's config
-kept in a directory called `config` with the outer directory the name of
-project.
-```PYTHON
-$ mv config client-service
-```
-
-You should have a directory structure similar to this.
-```
-├── auth-service
-│   ├── config
-│   │   ├── __init__.py
-│   │   ├── asgi.py
-│   │   ├── settings.py
-│   │   ├── urls.py
-│   │   └── wsgi.py
-│   ├── db.sqlite3
-│   └── manage.py
-└── client-service
-    ├── config
-    │   ├── __init__.py
-    │   ├── asgi.py
-    │   ├── settings.py
-    │   ├── urls.py
-    │   └── wsgi.py
-    └── manage.py
-```
-
-Now let's remove the temp virtual environment by deactivating, deleting the old
-one, then creating a new on in the right place.
-```
-$ deactivate
-```
-
-Your terminal should be back to something like this;
-`user@domain  ~/Code/ `
-
-Delete the files.
-```
-$ rm -Rf .venv
-```
-
-```
-$ cd client-service
-```
-
-Create another virtual environment.
-```
-$ python -m virtualenv .venv
-```
-
-Activate the virtual environment, again. We'll keep this one this time.
-```
-$ source .venv/bin/activate
-```
-
-Again, your terminal should look something like this;
-`(.venv)  user@domain  ~/Code/auth-service/ `
-
-Install the packages we're going to use. We don't need `SimpleJWT` this time
-because authentication is handled by the remote auth-service.
-```
-$ pip install django django_rest_framework django_easyjwt
-```
-
-We need to let Django know about the apps we'll be using, so open `settings.py`
-and add the following lines to `INSTALLED_APPS`;
-```PY
+```python
 INSTALLED_APPS = [
-    ...
+    # ...
     'rest_framework',
     'easyjwt_client',
     'easyjwt_user',
 ]
-```
 
-We need to use the same User model as the auth-service, otherwise the user
-returned by the auth-service will cause an integrity error.
-
-```py
 AUTH_USER_MODEL = "easyjwt_user.User"
-```
 
-Add some configuration for Djang Rest Framework. Change the default behaviour
-for all endpoints to require authentication. Then we override the default
-authentication classes with the ones from `Django-EasyJWT`.
-```py
 REST_FRAMEWORK = {
-    "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.IsAuthenticated",
-    ),
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "easyjwt_client.authentication.RemoteJWTAuthentication",     # Use our service
-        "rest_framework.authentication.SessionAuthentication",  # Maybe the user has a session...
+        "easyjwt_client.authentication.EasyJWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
     ),
 }
-```
 
-Let Django know that we want to use a custom authentication backend.
-```py
-# implement out or custom backend for Admin and other views.
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',    # Default, check the local DB.
-    'easyjwt_client.authentication.ModelBackend'         # Our override to check the remote service.
+    'django.contrib.auth.backends.ModelBackend',
+    'easyjwt_client.authentication.RemoteAuthBackend',
 ]
-```
 
-Time to configure `Django-EasyJWT`. For this example example we're going to run
-the auth-server on `:8000` and the client-service on `:8001`. Most of this conf
-should be handled through environmental variables in a real project. But we're
-just aiming for the absolute minimal working example.
-
-```py
 EASY_JWT = {
-    "AUTH_HEADER_TYPES": ("Bearer", ),
+    "AUTH_HEADER_TYPES": ("Bearer",),
     "AUTH_HEADER_NAME": "Authorization",
-    "REMOTE_AUTH_SERVICE_URL": "http://127.0.0.1:8000", # Where do we reach the Auth-Service
-    "REMOTE_AUTH_SERVICE_TOKEN_PATH": "/auth/token/", # The path to login and retrieve a token
-    "REMOTE_AUTH_SERVICE_REFRESH_PATH": "/auth/token/refresh/", # The path to refresh a token
-    "REMOTE_AUTH_SERVICE_VERIFY_PATH": "/auth/token/verify/", # The path to verify a token
-    "REMOTE_AUTH_SERVICE_USER_PATH": "/auth/user/", # The path to get the user object
+    "REMOTE_AUTH_SERVICE_URL": "http://127.0.0.1:8000",
+    "REMOTE_AUTH_SERVICE_TOKEN_PATH": "/auth/token/",
+    "REMOTE_AUTH_SERVICE_REFRESH_PATH": "/auth/token/refresh/",
+    "REMOTE_AUTH_SERVICE_VERIFY_PATH": "/auth/token/verify/",
+    "REMOTE_AUTH_SERVICE_USER_PATH": "/auth/user/",
+    "REMOTE_AUTH_REQUEST_TIMEOUT": 30,
+    "REMOTE_AUTH_SSL_VERIFY": True,
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
 }
 ```
 
-Open `config/urls.py` and add the URLs from easyjwt that will be passed
-through to the auth-service.
+Add to `config/urls.py`:
 
-```py
-from django.urls import path, include
-
-
-urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('auth/', include("easyjwt_client.urls"))
-]
-```
-Don't forget the `include` import.
-
-We'll add our test view to the urls as well shortly.
-
-All the client-service needs now is an endpoint to prove it's alive. So let's
-add a Django app with a view that requires authentication we use to test.
-```py
-$ django-admin startapp test_app
-```
-
-Your directory structure should now look something along the lines of;
-```
-.
-├── config
-│   ├── __init__.py
-│   ├── asgi.py
-│   ├── settings.py
-│   ├── urls.py
-│   └── wsgi.py
-├── manage.py
-└── test_app
-    ├── __init__.py
-    ├── admin.py
-    ├── apps.py
-    ├── migrations
-    │   └── __init__.py
-    ├── models.py
-    ├── tests.py
-    └── views.py
-```
-
-You can see the new app called `test_app` has been added.
-
-Open `test_app/views.py` and add the following view. Because we changed the
-Rest Framework config to use a `DEFAULT_PERMISSION_CLASSES` of `IsAuthenticated`
-all views will require authentication.
-```py
-from rest_framework import generics
-from rest_framework.response import Response
-
-class TestView(generics.GenericAPIView):
-    def get(self, request):
-        return Response("success", status=200)
-```
-
-There are no models or serializers, it's the absolute least we can do to get a
-success. There is no need to add the `test_app` to the `INSTALLED_APPS` because
-it has no models that need migrating.
-
-
-The absolute final step before we can run some tests is to add the `TestView` to
-the client-service's Urls.py so it knows where to send an incoming request.
-
-```py
+```python
 from django.urls import path, include
 from test_app.views import TestView
 
@@ -558,343 +242,266 @@ urlpatterns = [
 ]
 ```
 
-Don't forget it include the `include` import at the end of
-`from django.urls import path` at the top of the `urls.py` file.
+Create `test_app/views.py`:
 
-Modfiy the `config/urls.py` so it looks like the above.
-First we import the `TestView` from `test_app` and then we give it a path, in
-this case `/api/test/`.
+```python
+from rest_framework import generics
+from rest_framework.response import Response
 
-Let's migrate the client-service so it has a database to write the user to.
-```
-$ python manage.py makemigrations
-```
-```
-$ python manage.py migrate
+class TestView(generics.GenericAPIView):
+    def get(self, request):
+        return Response("success", status=200)
 ```
 
+Run migrations:
 
-
-## Standing up the Services
-
-As mentioned earlier, we have two services and auth-service and a client-service
-. We want the auth-service to be on `:8000` and the client-service to be at
-`:8001`.
-
-**This is important because it's how we configure the easyjwt's configuration
-in the auth-service and client-service.**
-
-You'll need two terminals. One in auth-service/ and one in client-service/ both
-with the respective virtual environments loaded and then a third one to execute
-the requests from using `curl`.
-
-In auth-service, stand up on port `:8000` like;
-```
-(.venv)  user@domain > ~/Code/auth-service $ python manage.py runserver 0.0.0.0:8000
-```
-
-And then stand up the client-service on port `:8001` like this;
-```
-(.venv)  user@domain > ~/Code/client-service $ python manage.py runserver 0.0.0.0:8001
+```bash
+uv run python manage.py makemigrations
+uv run python manage.py migrate
+uv run python manage.py runserver 0.0.0.0:8001
 ```
 
 ---
 
-# How to test the API
+### Standing up the Services
 
-In the below examples we're mking requests to super simple API  (client-service)
-which will reach out to the auth-service to retrieve, verify, and if needed
-refresh the tokens.
+Run both services in separate terminals:
 
-You can check the client-service's db.sqlite3 database before making any
-requests to confirm the `user` table is empty. After making a few successful
-requests there will be some users there.
+```bash
+# Terminal 1 - Auth-Service
+cd auth-service
+source .venv/bin/activate
+uv run python manage.py runserver 0.0.0.0:8000
 
-Remember the users added to the auth-service further back?
-You'll need those email and passwords shortly.
-
-Also remember that the auth-service is at `:8000` and the client-service is at
-`:8001`. As a client-service user, we should never interact with the
-auth-service directly. It shouldn't even be accessible to the public in a normal
-production environment.
-
-## Authorise and obtain a token pair
-
+# Terminal 2 - Client-Service
+cd client-service
+source .venv/bin/activate
+uv run python manage.py runserver 0.0.0.0:8001
 ```
-curl \
-  -X POST \
+
+---
+
+## Configuration Reference
+
+### Auth-Service Settings
+
+| Setting                  | Type      | Default     | Description                             |
+| ------------------------ | --------- | ----------- | --------------------------------------- |
+| `ACCESS_TOKEN_LIFETIME`  | timedelta | Required    | Access token validity duration          |
+| `REFRESH_TOKEN_LIFETIME` | timedelta | Required    | Refresh token validity duration         |
+| `ALGORITHM`              | str       | `"HS256"`   | JWT signing algorithm                   |
+| `SIGNING_KEY`            | str       | Required    | Secret key for signing tokens           |
+| `USER_ID_FIELD`          | str       | `"id"`      | User model field for ID                 |
+| `USER_ID_CLAIM`          | str       | `"user_id"` | JWT claim for user ID                   |
+| `CHECK_REVOKE_TOKEN`     | bool      | `False`     | Enable password-change token revocation |
+
+### Client-Service Settings
+
+| Setting                            | Type  | Default                  | Description                     |
+| ---------------------------------- | ----- | ------------------------ | ------------------------------- |
+| `REMOTE_AUTH_SERVICE_URL`          | str   | Required                 | Base URL of auth-service        |
+| `REMOTE_AUTH_SERVICE_TOKEN_PATH`   | str   | `"/auth/token/"`         | Token endpoint path             |
+| `REMOTE_AUTH_SERVICE_REFRESH_PATH` | str   | `"/auth/token/refresh/"` | Refresh endpoint path           |
+| `REMOTE_AUTH_SERVICE_VERIFY_PATH`  | str   | `"/auth/token/verify/"`  | Verify endpoint path            |
+| `REMOTE_AUTH_SERVICE_USER_PATH`    | str   | `"/auth/user/"`          | User endpoint path              |
+| `REMOTE_AUTH_REQUEST_TIMEOUT`      | int   | `30`                     | HTTP request timeout in seconds |
+| `REMOTE_AUTH_SSL_VERIFY`           | bool  | `True`                   | Verify SSL certificates         |
+| `AUTH_HEADER_TYPES`                | tuple | `("Bearer",)`            | Valid auth header types         |
+| `USER_MODEL_SERIALIZER`            | str   | Built-in                 | Custom user serializer path     |
+
+---
+
+## API Endpoints
+
+| Endpoint               | Method | Description                      |
+| ---------------------- | ------ | -------------------------------- |
+| `/auth/token/`         | POST   | Obtain access and refresh tokens |
+| `/auth/token/refresh/` | POST   | Refresh an expired access token  |
+| `/auth/token/verify/`  | POST   | Verify if a token is valid       |
+| `/auth/users/`         | GET    | List users (auth-service only)   |
+| `/auth/users/{id}/`    | GET    | Get user details                 |
+
+---
+
+## Testing the API
+
+### Obtain Token Pair
+
+```bash
+curl -X POST \
   -H "Content-Type: application/json" \
   -d '{"email": "user@test.com", "password": "user-pass"}' \
   http://127.0.0.1:8001/auth/token/
 ```
 
-Will give you a response like;
-```JSON
+Response:
+
+```json
 {
-    "refresh":" ... ",
-    "access":" ... "
+  "refresh": "...",
+  "access": "..."
 }
 ```
 
-(I removed the tokens above for brevity.)
+### Make Authenticated Request
 
+```bash
+export ACCESS_TOKEN=<your_access_token>
 
-## Perform a generic API requst
-
-Export the access token from the previous response to an envar.
-eg.
- `export ACCESS_TOKEN={paste_token_here}`
-
- Should return 'success'.
-
-```
-curl \
-  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+curl -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   http://127.0.0.1:8001/api/test/
 ```
 
-The response should be;
+Response: `"success"`
 
-```JSON
-    "success"
-```
+### Refresh Token
 
-
-## Refresh an expired token
-
-```
-curl \
-  -X POST \
+```bash
+curl -X POST \
   -H "Content-Type: application/json" \
-  -d '{"refresh": "${REFRESH_TOKEN"}}' \
+  -d '{"refresh": "${REFRESH_TOKEN}"}' \
   http://127.0.0.1:8001/auth/token/refresh/
 ```
 
+### Verify Token
 
-## Verify the token is correct
- Performed by the client-service against the auth-service with every single
- JWT API request.
-
-```
-curl \
-  -X POST \
+```bash
+curl -X POST \
   -H "Content-Type: application/json" \
-  -d '{"token": "${REFRESH_TOKEN}"}' \
+  -d '{"token": "${ACCESS_TOKEN}"}' \
   http://127.0.0.1:8001/auth/token/verify/
 ```
 
+---
 
-## Get the user details
-This would be done inside the Auth handler when the user doesn't exist. There
-needs to be a valid user_id for the user associated with the access token being
-used. Ie. you can't view other user objectss by guessing an ID. Only your own.
+## Advanced Usage
 
-```
-curl \
-  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-  http://localhost:8001/auth/users/{user_id}/
-```
+### Extra Data
 
+You can pass additional user data from the auth-service to client-services using custom serializers.
 
-# Extra Data
+#### Auth-Service Configuration
 
-There may be scenarios where you want the Auth-Service to include additional User information that is passed
-down to the Client-Services. One scenario for this may be having a centralised auth service, but customer's
-get access to the client services individually; Ie. a user may have access to service A but not service B.
-Think of this as maybe an Access Group with a access level attribute.
+`models.py`:
 
-This can achieved by specifying and creating custom User Model Serializers. The config key for this
-is "USER_MODEL_SERIALIZER" where you specify a serializer to use when parsing the User data returned from the
-Auth-Service, eg. "custom.serializers.CustomUserModelSerialzer" or whatever you name the app and file.
-
-The Auth-Service serializer needs to expose ALL the data that will be needed by ALL Client-services. A Client-
-service needs to only parse the data relevant to it.
-I.e. it is possible to Client-services to have different custom serializers only recording the fields they
-individually care about.
-
-### NB
-
-You cannot use exactly the same serializer between the two services as the Client Service is required to
-override the create & update methods on the custom user Serializer.
-
-
-### Auth Service Config
-
-Create a new app, or prepare an existing one to hold your custom user data.
-
-`models.py`
 ```python
 class AccessGroup(models.Model):
-
-    user = models.OneToOneField(
-        User, related_name="accessgroup", on_delete=models.CASCADE
-    )
-    user_type = models.TextField()  # use a choices/enum field here.
+    user = models.OneToOneField(User, related_name="accessgroup", on_delete=models.CASCADE)
+    user_type = models.TextField()
 ```
 
-Now we add the serializers to expose this data. Two are used because one represents the standard User object
-and the next is the serializer for the related AccessGroup model.
+`serializers.py`:
 
-`serializers.py`
-```
+```python
 class AccessGroupSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = AccessGroup
-        fields = (
-            "user_type",
-        )
-
+        fields = ("user_type",)
 
 class TokenUserSerializer(serializers.ModelSerializer):
     accessgroup = AccessGroupSerializer()
 
     class Meta:
         model = User
-        fields = (
-            "id",
-            "first_name",
-            "email",
-            "last_name",
-            "date_joined",
-            "last_login",
-            "is_active",
-            "is_staff",
-            "is_superuser",
-            "accessgroup",
-        )
+        fields = ("id", "email", "first_name", "last_name", "accessgroup")
 ```
 
-Remember to change the Serializer the Django-EasyJWT will use to parse the user data by adding the following
-to the EASY_JWT dict in settings.py.
+Add to `EASY_JWT` settings:
 
-```
-    "USER_MODEL_SERIALIZER": "userdata.serializer.TokenUserSerializer",
-```
-
-### Client Service Config
-
-Add the same AccessGroup modes from the auth service into an appropriate app. Create a new one if required.
-
-`models.py`
-```
-class AccessGroup(models.Model):
-
-    user = models.OneToOneField(
-        User, related_name="accessgroup", on_delete=models.CASCADE
-    )
-    user_type = models.TextField()  # use choices here in production.
+```python
+"USER_MODEL_SERIALIZER": "userdata.serializers.TokenUserSerializer",
 ```
 
-Now we add the Serializers that will parse the info overriding the create and update methods so we can save
-the AccessGroup data cleanly.
+#### Client-Service Configuration
 
-`serializers.py`
-```
-class AccessGroupSerializer(serializers.ModelSerializer):
+Use the same model and serializer, but override `create()` and `update()` methods:
 
-    class Meta:
-        model = AccessGroup
-        fields = (
-            "user_type",
-        )
-
-
+```python
 class TokenUserSerializer(serializers.ModelSerializer):
     accessgroup = AccessGroupSerializer()
 
     class Meta:
         model = User
-        fields = (
-            "id",
-            "first_name",
-            "email",
-            "last_name",
-            "date_joined",
-            "last_login",
-            "is_active",
-            "is_staff",
-            "is_superuser",
-            "accessgroup",
-        )
+        fields = ("id", "email", "first_name", "last_name", "accessgroup")
 
     def create(self, validated_data):
-        """
-        DRF doesn't support writable nested serializers so we need to create the nested
-        objects manually.
-        """
-
-        user_id = validated_data.pop(get_user_model().USERNAME_FIELD)
         accessgroup = validated_data.pop("accessgroup")
-        user, _ = User.objects.get_or_create(email=user_id, defaults=validated_data)
-        # Delete stale data.
-        # It's stale because this payload is the latest truth.
-        try:
-            user.accessgroup.delete()
-        except AccessGroup.DoesNotExist:
-            pass
-
-        serializer = AccessGroupSerializer(data=accessgroup)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(user=user)
-
+        user, _ = User.objects.get_or_create(
+            email=validated_data.pop("email"),
+            defaults=validated_data
+        )
+        AccessGroup.objects.update_or_create(user=user, defaults=accessgroup)
         return user
 
     def update(self, instance, validated_data):
         accessgroup = validated_data.pop("accessgroup")
-        # Delete stale data.
-        # It's stale because auth service is the source of truth.
-        try:
-            instance.accessgroup.delete()
-        except AccessGroup.DoesNotExist:
-            pass
-
-        instance.first_name = validated_data["first_name"]
-        instance.last_name = validated_data["last_name"]
-        # Do no update email, its a primary key.
-        instance.last_login = validated_data["last_login"]
-        instance.is_active = validated_data["is_active"]
-        instance.is_staff = validated_data["is_staff"]
-        instance.is_superuser = validated_data["is_superuser"]
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
         instance.save()
-
-        serializer = AccessGroupSerializer(data=accessgroup)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(user=instance)
-
+        AccessGroup.objects.update_or_create(user=instance, defaults=accessgroup)
         return instance
 ```
 
-Again, we need to let the Django-EasyJWT know ho to parse the user data.
+---
 
-```
-    "USER_MODEL_SERIALIZER": "userdata.serializer.TokenUserSerializer",
-```
+### Permissions
 
-Because, in this example, the extra data is being exposed as a nested serializer, you are required to override
-the serializers .create() method and handle the nested data yourself. This give the flexability to only record
-the data relevant to the service.
-
-
-# Permissions
-Now that some custom data is being sent along witht the login request, we need to do something with it that
-allows a user to use one service and not another. The most straight forward solution would be to name the
-fields being passed as the services needing access and then use a permission class (for DRF only) to reject
-access if they're not authed for this particular service.
-
+Use custom permission classes to control access based on user data:
 
 ```python
 from rest_framework import permissions
 
-
 class AccessGroupPermission(permissions.BasePermission):
     message = "You do not have permission to this service"
-
-    def has_object_permission(self, request, view, obj):
-        return request.user is not None
 
     def has_permission(self, request, view):
         return (
             not request.user.is_anonymous
-            and view.access_level.startswith(request.user.accessgroup.access_level)
+            and hasattr(request.user, 'accessgroup')
+            and view.access_level.startswith(request.user.accessgroup.user_type)
+        )
 ```
+
+---
+
+## Running Tests
+
+```bash
+uv pip install -e ".[dev]"
+uv run pytest
+```
+
+Or with coverage:
+
+```bash
+uv run pytest --cov=easyjwt_auth --cov=easyjwt_client --cov=easyjwt_user
+```
+
+---
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for version history.
+
+### Recent Changes (1.0.0)
+
+- Replaced MD5 with SHA-256 for password hashing
+- Renamed `ModelBackend` to `RemoteAuthBackend`
+- Added configurable HTTP request timeouts
+- Made SSL verification configurable
+- Consolidated HTTP error handling
+- Added `__all__` exports to public modules
+
+---
+
+## Acknowledgements
+
+This package is heavily based on [djangorestframework-simplejwt](https://github.com/jazzband/djangorestframework-simplejwt) and influenced by SimpleJWT.
+
+An example implementation is available at [django-easyjwt-example](https://github.com/garrethcain/django-easyjwt-example).
+
+---
+
+## License
+
+MIT License - see [LICENCE](LICENCE) file.
