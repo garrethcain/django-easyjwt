@@ -1,4 +1,5 @@
-from rest_framework import generics, permissions, response
+from rest_framework import exceptions, generics, permissions, response
+from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.views import PasswordChangeView as BasePasswordChangeView
 from django.views.generic.base import RedirectView
 from django.views.generic import TemplateView
@@ -27,11 +28,16 @@ class PasswordChangeView(BasePasswordChangeView):
         tokenmanager = TokenManager()
         data = request.POST.copy()
         username = getattr(request.user, tokenmanager.username_field)
-        tokenmanager.password_change(
-            username,
-            data.get("old_password"),
-            data.get("new_password1"),
-        )
+        try:
+            tokenmanager.password_change(
+                username,
+                data.get("old_password"),
+                data.get("new_password1"),
+            )
+        except Exception:
+            form = PasswordChangeForm(request.user, request.POST)
+            form.add_error(None, "Password change failed. Please check your credentials and try again.")
+            return self.render_to_response(self.get_context_data(form=form))
         return HttpResponseRedirect(self.get_success_url())
 
 

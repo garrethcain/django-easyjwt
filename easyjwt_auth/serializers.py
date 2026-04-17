@@ -1,6 +1,5 @@
 from typing import Any, Dict, Optional, Type, TypeVar
 
-from django.http import Http404
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import AbstractBaseUser, update_last_login
@@ -220,7 +219,7 @@ class PasswordChangeSerializer(serializers.ModelSerializer):
             user.set_password(validated_data["new_password"])
             user.save()
             return user
-        raise Http404("Resource not found")
+        raise serializers.ValidationError("Invalid credentials.")
 
 
 class CreateUserSerializer(serializers.ModelSerializer):
