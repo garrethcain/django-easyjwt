@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.utils.module_loading import import_string
 from rest_framework import generics, status
 from rest_framework.request import Request
@@ -17,6 +18,7 @@ class CreateUserView(generics.CreateAPIView):
 class PasswordChangeView(generics.GenericAPIView):
     permission_classes = ()
     serializer_class = PasswordChangeSerializer
+    queryset = get_user_model().objects.none()
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
