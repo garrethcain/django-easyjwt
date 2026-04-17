@@ -34,9 +34,21 @@ class PasswordChangeView(BasePasswordChangeView):
                 data.get("old_password"),
                 data.get("new_password1"),
             )
-        except Exception:
+        except exceptions.AuthenticationFailed as e:
             form = PasswordChangeForm(request.user, request.POST)
-            form.add_error(None, "Password change failed. Please check your credentials and try again.")
+            detail = getattr(e, "detail", None)
+            if isinstance(detail, dict):
+                for field, errors in detail.items():
+                    if isinstance(errors, list):
+                        for error in errors:
+                            form.add_error(None, str(error))
+                    else:
+                        form.add_error(None, str(errors))
+            elif isinstance(detail, list):
+                for error in detail:
+                    form.add_error(None, str(error))
+            else:
+                form.add_error(None, str(detail) if detail else "Password change failed.")
             return self.render_to_response(self.get_context_data(form=form))
         return HttpResponseRedirect(self.get_success_url())
 

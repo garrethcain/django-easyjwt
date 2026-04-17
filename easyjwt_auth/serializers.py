@@ -3,6 +3,8 @@ from typing import Any, Dict, Optional, Type, TypeVar
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import AbstractBaseUser, update_last_login
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.translation import gettext_lazy as _
 from rest_framework import exceptions, serializers
 from rest_framework.exceptions import ValidationError
@@ -204,6 +206,27 @@ class PasswordChangeSerializer(serializers.ModelSerializer):
             "new_password",
         )
 
+    def validate(self, attrs):
+        authenticate_kwargs = {
+            self.username_field: attrs[self.username_field],
+            "password": attrs["password"],
+        }
+        try:
+            authenticate_kwargs["request"] = self.context["request"]
+        except KeyError:
+            pass
+
+        user = authenticate(**authenticate_kwargs)
+        if user is None:
+            raise serializers.ValidationError("Invalid credentials.")
+
+        try:
+            validate_password(attrs["new_password"], user=user)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError({"new_password": list(e.messages)})
+
+        return attrs
+
     def create(self, validated_data):
         authenticate_kwargs = {
             self.username_field: validated_data[self.username_field],
@@ -215,11 +238,9 @@ class PasswordChangeSerializer(serializers.ModelSerializer):
             pass
 
         user = authenticate(**authenticate_kwargs)
-        if user:
-            user.set_password(validated_data["new_password"])
-            user.save()
-            return user
-        raise serializers.ValidationError("Invalid credentials.")
+        user.set_password(validated_data["new_password"])
+        user.save()
+        return user
 
 
 class CreateUserSerializer(serializers.ModelSerializer):
@@ -244,6 +265,13 @@ class CreateUserSerializer(serializers.ModelSerializer):
             "last_name": {"required": False},
             "phone": {"required": False},
         }
+
+    def validate_password(self, value):
+        try:
+            validate_password(value)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(list(e.messages))
+        return value
 
     def create(self, validated_data):
         password = validated_data.pop("password")
