@@ -14,9 +14,15 @@ class CreateUserView(generics.CreateAPIView):
     serializer_class = CreateUserSerializer
 
 
-class PasswordChangeView(generics.CreateAPIView):
+class PasswordChangeView(generics.GenericAPIView):
     permission_classes = ()
     serializer_class = PasswordChangeSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class TokenViewBase(generics.GenericAPIView):
