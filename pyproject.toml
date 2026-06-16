@@ -47,8 +47,8 @@ dev = [
 Homepage = "https://github.com/garrethcain/django-easyjwt"
 Repository = "https://github.com/garrethcain/django-easyjwt"
 
-[tool.setuptools]
-packages = ["easyjwt_auth", "easyjwt_client", "easyjwt_user"]
+[tool.setuptools.packages.find]
+include = ["easyjwt_auth*", "easyjwt_client*", "easyjwt_user*"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "tests.settings"
