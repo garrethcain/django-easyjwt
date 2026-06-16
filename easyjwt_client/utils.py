@@ -1,4 +1,5 @@
 import json
+import logging
 
 import requests
 from django.conf import settings
@@ -8,6 +9,8 @@ from django.utils.module_loading import import_string
 from rest_framework import exceptions
 
 from .settings import api_settings
+
+logger = logging.getLogger("easyjwt_client")
 
 User = get_user_model()
 
@@ -138,7 +141,12 @@ class TokenManager:
                 self._handle_request_error(e)
 
         if response.status_code != 200:
-            raise exceptions.AuthenticationFailed(response.text)
+            logger.warning(
+                "Auth service returned %s for user details: %s",
+                response.status_code,
+                response.text,
+            )
+            raise exceptions.AuthenticationFailed("Authentication service returned an error.")
 
         user_dict = response.json()
         try:

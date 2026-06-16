@@ -128,10 +128,6 @@ class TestPasswordChangeView:
 
             assert response.status_code == 302
 
-    @pytest.mark.xfail(
-        reason="SEC-1: new_password2 is never validated in PasswordChangeView.post",
-        strict=True,
-    )
     def test_mismatched_passwords_are_rejected(self, user):
         """SEC-1: mismatched new passwords should NOT trigger a remote password change."""
         factory = RequestFactory()

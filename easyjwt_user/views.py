@@ -1,6 +1,7 @@
 from django.utils.module_loading import import_string
 from django.contrib.auth import get_user_model
 from rest_framework import generics
+from rest_framework.permissions import IsAuthenticated
 
 
 from .settings import api_settings
@@ -10,6 +11,7 @@ User = get_user_model()
 
 
 class TokenUserDetailView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
     serializer_class = None
     _serializer_class = api_settings.USER_MODEL_SERIALIZER
 

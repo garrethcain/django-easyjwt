@@ -189,9 +189,9 @@ class TestCreateOrUpdateUser:
             assert updated_user.pk == user.pk
             assert updated_user.first_name == "Updated"
 
-    def test_non_200_response_leaks_upstream_text(self):
-        """SEC-2: non-200 response raises AuthenticationFailed with raw
-        response.text, leaking auth-service internals to the client."""
+    def test_non_200_response_raises_sanitized_error(self):
+        """SEC-2: non-200 response raises AuthenticationFailed with a generic
+        message, not the raw upstream response body."""
         with responses_mock.RequestsMock() as rsps:
             rsps.add(
                 responses_mock.GET,
@@ -205,7 +205,8 @@ class TestCreateOrUpdateUser:
             with pytest.raises(exceptions.AuthenticationFailed) as exc_info:
                 tm._create_or_update_user({"access": "fake_token"})
 
-            assert "Internal Server Error" in str(exc_info.value.detail)
+            assert "Internal Server Error" not in str(exc_info.value.detail)
+            assert "returned an error" in str(exc_info.value.detail)
 
     def test_authenticate_with_create_local_user_true(self, user_credentials):
         """TEST-2: authenticate() with the production default

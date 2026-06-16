@@ -28,11 +28,20 @@ class PasswordChangeView(BasePasswordChangeView):
         tokenmanager = TokenManager()
         data = request.POST.copy()
         username = getattr(request.user, tokenmanager.username_field)
+
+        new_password1 = data.get("new_password1")
+        new_password2 = data.get("new_password2")
+
+        if new_password1 != new_password2:
+            form = PasswordChangeForm(request.user, request.POST)
+            form.add_error("new_password2", "The new password fields didn't match.")
+            return self.render_to_response(self.get_context_data(form=form))
+
         try:
             tokenmanager.password_change(
                 username,
                 data.get("old_password"),
-                data.get("new_password1"),
+                new_password1,
             )
         except exceptions.AuthenticationFailed as e:
             form = PasswordChangeForm(request.user, request.POST)

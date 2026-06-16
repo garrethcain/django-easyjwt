@@ -20,10 +20,6 @@ class TestTokenUserDetailView:
         assert "email" in data
         assert "id" in data
 
-    @pytest.mark.xfail(
-        reason="SEC-3: TokenUserDetailView has no explicit permission_classes",
-        strict=True,
-    )
     def test_unauthenticated_request_rejected(self):
         """SEC-3: unauthenticated requests should be rejected with 401 or 403."""
         client = APIClient()
