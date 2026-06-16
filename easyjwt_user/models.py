@@ -1,5 +1,4 @@
 from django.db import models
-import uuid
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.utils.translation import gettext_lazy as _
 
@@ -65,7 +64,6 @@ class User(AbstractUser):
     )
     modified_date = models.DateTimeField(_("modified date"), auto_now=True)
     creation_date = models.DateTimeField(_("creation date"), auto_now_add=True)
-    jwt_secret = models.UUIDField(editable=False, default=uuid.uuid4)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS: List[str] = []

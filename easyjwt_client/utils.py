@@ -2,7 +2,6 @@ import json
 import logging
 
 import requests
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.utils.module_loading import import_string
@@ -36,16 +35,16 @@ class TokenManager:
 
     @staticmethod
     def _get_request_settings() -> tuple:
-        """Get common request settings from Django settings."""
+        """Get common request settings from api_settings."""
         return (
-            settings.EASY_JWT.get("REMOTE_AUTH_REQUEST_TIMEOUT", 30),
-            settings.EASY_JWT.get("REMOTE_AUTH_SSL_VERIFY", True),
+            api_settings.REMOTE_AUTH_REQUEST_TIMEOUT,
+            api_settings.REMOTE_AUTH_SSL_VERIFY,
         )
 
     def __request(self, path, payload, extra_headers=None) -> dict:
-        root_url = settings.EASY_JWT["REMOTE_AUTH_SERVICE_URL"]
-        timeout = settings.EASY_JWT.get("REMOTE_AUTH_REQUEST_TIMEOUT", 30)
-        ssl_verify = settings.EASY_JWT.get("REMOTE_AUTH_SSL_VERIFY", True)
+        root_url = api_settings.REMOTE_AUTH_SERVICE_URL
+        timeout = api_settings.REMOTE_AUTH_REQUEST_TIMEOUT
+        ssl_verify = api_settings.REMOTE_AUTH_SSL_VERIFY
         headers = {
             "content-type": "application/json",
         }
@@ -100,7 +99,7 @@ class TokenManager:
         """
         Verifies a token against the remote Auth-Service.
         """
-        path = settings.EASY_JWT["REMOTE_AUTH_SERVICE_VERIFY_PATH"]
+        path = api_settings.REMOTE_AUTH_SERVICE_VERIFY_PATH
         payload = {"token": token}
         return self.__request(path, payload)
 
@@ -109,7 +108,7 @@ class TokenManager:
         Returns an Access token by refreshing with the Refresh token
         against the remote Auth-Service.
         """
-        path = settings.EASY_JWT["REMOTE_AUTH_SERVICE_REFRESH_PATH"]
+        path = api_settings.REMOTE_AUTH_SERVICE_REFRESH_PATH
         payload = {"refresh": refresh}
 
         return self.__request(path, payload)
@@ -119,7 +118,7 @@ class TokenManager:
         Returns an Access & Refresh token if authenticated against the remote
         Authentication-Service.
         """
-        path = settings.EASY_JWT["REMOTE_AUTH_SERVICE_TOKEN_PATH"]
+        path = api_settings.REMOTE_AUTH_SERVICE_TOKEN_PATH
         payload = {
             self.username_field: kwargs[self.username_field],
             "password": kwargs.get("password"),
@@ -131,9 +130,9 @@ class TokenManager:
         return tokens
 
     def _create_or_update_user(self, tokens):
-        auth_header_types = settings.EASY_JWT["AUTH_HEADER_TYPES"]
-        root_url = settings.EASY_JWT["REMOTE_AUTH_SERVICE_URL"]
-        path = settings.EASY_JWT["REMOTE_AUTH_SERVICE_USER_PATH"]
+        auth_header_types = api_settings.AUTH_HEADER_TYPES
+        root_url = api_settings.REMOTE_AUTH_SERVICE_URL
+        path = api_settings.REMOTE_AUTH_SERVICE_USER_PATH
         timeout, ssl_verify = self._get_request_settings()
 
         headers: dict[str, str] = {
@@ -176,7 +175,7 @@ class TokenManager:
                 existing_user,
                 data=user_dict,
                 context={
-                    "user_id_field": settings.EASY_JWT["USER_ID_CLAIM"],
+                    "user_id_field": api_settings.USER_ID_CLAIM,
                     "raw_data": user_dict,
                 },
             )

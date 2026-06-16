@@ -4,15 +4,14 @@ from django.contrib.auth.views import PasswordChangeView as BasePasswordChangeVi
 from django.views.generic.base import RedirectView
 from django.views.generic import TemplateView
 from django.urls import reverse_lazy
-from django.conf import settings
 from django.http import HttpResponseRedirect
-
 
 from .serializers import (
     TokenObtainPairSerializer,
     TokenRefreshSerializer,
     TokenVerifySerializer,
 )
+from .settings import api_settings
 from .utils import TokenManager
 
 
@@ -70,7 +69,7 @@ class PasswordResetView(RedirectView):
 
     # Optional: Dynamically generate the redirect URL
     def get_redirect_url(self, *args, **kwargs):
-        return f"{settings.EASY_JWT['REMOTE_AUTH_SERVICE_URL']}/accounts/password_reset/"
+        return f"{api_settings.REMOTE_AUTH_SERVICE_URL}/accounts/password_reset/"
 
 
 class TokenObtainPairView(generics.CreateAPIView):

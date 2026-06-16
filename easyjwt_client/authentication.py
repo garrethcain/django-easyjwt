@@ -2,10 +2,10 @@ import json
 import requests
 from typing import Tuple
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import authentication, exceptions, HTTP_HEADER_ENCODING
 
+from .settings import api_settings
 from .utils import TokenManager
 
 __all__ = [
@@ -55,10 +55,10 @@ class RemoteAuthBackend(authentication.BaseAuthentication):
 
 class EasyJWTAuthentication(authentication.BaseAuthentication):
     def __verify_token(self, jwt: str) -> Tuple[bool, dict]:
-        root_url = settings.EASY_JWT["REMOTE_AUTH_SERVICE_URL"]
-        path = settings.EASY_JWT["REMOTE_AUTH_SERVICE_VERIFY_PATH"]
-        timeout = settings.EASY_JWT.get("REMOTE_AUTH_REQUEST_TIMEOUT", 30)
-        ssl_verify = settings.EASY_JWT.get("REMOTE_AUTH_SSL_VERIFY", True)
+        root_url = api_settings.REMOTE_AUTH_SERVICE_URL
+        path = api_settings.REMOTE_AUTH_SERVICE_VERIFY_PATH
+        timeout = api_settings.REMOTE_AUTH_REQUEST_TIMEOUT
+        ssl_verify = api_settings.REMOTE_AUTH_SSL_VERIFY
         headers = {
             "content-type": "application/json",
         }
@@ -121,7 +121,7 @@ class EasyJWTAuthentication(authentication.BaseAuthentication):
             msg = "Malformed Authorization Header"
             raise exceptions.AuthenticationFailed(msg) from e
 
-        if auth_method not in settings.EASY_JWT["AUTH_HEADER_TYPES"]:
+        if auth_method not in api_settings.AUTH_HEADER_TYPES:
             return None
 
         token_verified, message = self.__verify_token(jwt=auth_string)
@@ -133,4 +133,4 @@ class EasyJWTAuthentication(authentication.BaseAuthentication):
         return (user, None)
 
     def authenticate_header(self, request):
-        return settings.EASY_JWT["AUTH_HEADER_TYPES"][0]
+        return api_settings.AUTH_HEADER_TYPES[0]
