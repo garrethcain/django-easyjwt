@@ -56,7 +56,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "--verbose --tb=short"
+addopts = "--verbose --tb=short --cov=easyjwt_auth --cov=easyjwt_client --cov=easyjwt_user --cov-report=term-missing"
 markers = ["easyjwt_auth", "easyjwt_client", "easyjwt_user"]
 
 [tool.ruff]
@@ -100,3 +100,6 @@ upload_to_vcs_release = true
 
 [tool.semantic_release.remote.token]
 env = "GH_TOKEN"
+
+[dependency-groups]
+dev = []
