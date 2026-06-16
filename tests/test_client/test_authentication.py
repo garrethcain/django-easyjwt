@@ -133,6 +133,37 @@ class TestRemoteAuthBackend:
             assert result is not None
             assert result.email == user.email
 
+    def test_authenticate_with_email_kwarg(self, user):
+        with responses_mock.RequestsMock() as rsps:
+            rsps.add(
+                responses_mock.POST,
+                "http://remote-auth.test/auth/token/",
+                json={"access": "test-access-token", "refresh": "test-refresh-token"},
+                status=200,
+            )
+            rsps.add(
+                responses_mock.GET,
+                "http://remote-auth.test/auth/user/",
+                json={
+                    "id": user.id,
+                    "email": user.email,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                },
+                status=200,
+            )
+
+            backend = RemoteAuthBackend()
+            result = backend.authenticate(None, email="test@example.com", password="testpass123")
+
+            assert result is not None
+            assert result.email == user.email
+
+    def test_authenticate_no_credentials_returns_none(self):
+        backend = RemoteAuthBackend()
+        result = backend.authenticate(None)
+        assert result is None
+
     def test_authenticate_invalid_credentials_returns_none(self):
         with responses_mock.RequestsMock() as rsps:
             rsps.add(

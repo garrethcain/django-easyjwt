@@ -3,6 +3,7 @@ import requests
 from typing import Tuple
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.backends import BaseBackend
 from rest_framework import authentication, exceptions, HTTP_HEADER_ENCODING
 
 from .settings import api_settings
@@ -16,20 +17,20 @@ __all__ = [
 User = get_user_model()
 
 
-class RemoteAuthBackend(authentication.BaseAuthentication):
+class RemoteAuthBackend(BaseBackend):
     """
-    Allows views to authenticate against the remote backend.
-    These two classes have been kept seperate on purpose.
+    Django authentication backend that delegates credential checking
+    to a remote easyjwt_auth server.
     """
 
-    def authenticate(self, request, username: str, password: str):
-        """
-        Override the authentication method to allow auth to collect
-        a user from the remote authentication service.
-        """
+    def authenticate(self, request, username=None, password=None, **kwargs):
+        if username is None:
+            username = kwargs.get(User.USERNAME_FIELD)
+        if username is None or password is None:
+            return None
         tokenmanager = TokenManager()
         try:
-            _ = tokenmanager.authenticate(
+            tokenmanager.authenticate(
                 create_local_user=True, **{User.USERNAME_FIELD: username, "password": password}
             )
             return self._get_user_by_kwargs(username)
