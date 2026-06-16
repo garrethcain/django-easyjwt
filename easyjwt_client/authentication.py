@@ -82,7 +82,10 @@ class EasyJWTAuthentication(authentication.BaseAuthentication):
             )
 
         if response.status_code != 200:
-            return (False, response.json())
+            try:
+                return (False, response.json())
+            except ValueError:
+                return (False, {"detail": "Token is invalid or expired"})
 
         return (True, {})
 
@@ -109,7 +112,10 @@ class EasyJWTAuthentication(authentication.BaseAuthentication):
 
         if response.status_code != 200:
             raise exceptions.AuthenticationFailed(response.json())
-        return json.loads(response.text)
+        try:
+            return json.loads(response.text)
+        except ValueError:
+            raise exceptions.AuthenticationFailed("Authentication service returned an invalid user response.")
 
     def __get_authorization_header(self, request):
         """
@@ -155,4 +161,4 @@ class EasyJWTAuthentication(authentication.BaseAuthentication):
         return (user, None)
 
     def authenticate_header(self, request):
-        return "JWT"
+        return settings.EASY_JWT["AUTH_HEADER_TYPES"][0]

@@ -57,10 +57,6 @@ class TestUserManager:
                 is_superuser=False,
             )
 
-    @pytest.mark.xfail(
-        reason="BUG-4: error message says 'is_superuser' but should say 'is_active'",
-        strict=True,
-    )
     def test_create_superuser_without_active_raises_correct_message(self):
         with pytest.raises(ValueError, match="is_active=True"):
             User.objects.create_superuser(

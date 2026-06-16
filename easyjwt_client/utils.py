@@ -71,11 +71,18 @@ class TokenManager:
             )
 
         if response.status_code not in [200, 201]:
+            try:
+                error_detail = response.json()
+            except ValueError:
+                error_detail = "Authentication service returned an error."
             raise exceptions.AuthenticationFailed(
-                response.json(),
-                code=response.status_code,
+                error_detail,
+                code="authentication_failed",
             )
-        return response.json()
+        try:
+            return response.json()
+        except ValueError:
+            raise exceptions.AuthenticationFailed("Authentication service returned an invalid response.")
 
     def password_change(self, email, password, new_password):
         payload = dict(
@@ -148,7 +155,10 @@ class TokenManager:
             )
             raise exceptions.AuthenticationFailed("Authentication service returned an error.")
 
-        user_dict = response.json()
+        try:
+            user_dict = response.json()
+        except ValueError:
+            raise exceptions.AuthenticationFailed("Authentication service returned an invalid user response.")
         try:
             existing_user = User.objects.get(**{self.username_field: user_dict[self.username_field]})
         except User.DoesNotExist:

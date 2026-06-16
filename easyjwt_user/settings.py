@@ -26,9 +26,8 @@ class APISettings(_APISettings):  # pragma: no cover
         for setting in REMOVED_SETTINGS:
             if setting in user_settings:
                 raise RuntimeError(
-                    ("The '{}' setting has been removed. Please refer to '{}' for available settings."),
-                    setting,
-                    SETTINGS_DOC,
+                    f"The '{setting}' setting has been removed. "
+                    f"Please refer to '{SETTINGS_DOC}' for available settings."
                 )
 
         return user_settings

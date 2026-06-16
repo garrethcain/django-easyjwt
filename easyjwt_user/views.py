@@ -13,7 +13,6 @@ User = get_user_model()
 class TokenUserDetailView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = None
-    _serializer_class = api_settings.USER_MODEL_SERIALIZER
 
     def get_serializer_class(self):
         """
@@ -24,9 +23,9 @@ class TokenUserDetailView(generics.RetrieveAPIView):
             return self.serializer_class  # type: ignore
 
         try:
-            return import_string(self._serializer_class)
+            return import_string(api_settings.USER_MODEL_SERIALIZER)
         except ImportError:
-            msg = f"Could not import serializer '{self._serializer_class}'"
+            msg = f"Could not import serializer '{api_settings.USER_MODEL_SERIALIZER}'"
             raise ImportError(msg)
 
     def get_object(self):

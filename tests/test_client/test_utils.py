@@ -1,5 +1,3 @@
-import json
-
 import pytest
 import responses as responses_mock
 from rest_framework import exceptions
@@ -109,12 +107,9 @@ class TestTokenManager:
             with pytest.raises(exceptions.AuthenticationFailed, match="Timed Out"):
                 tm.authenticate(create_local_user=False, **user_credentials)
 
-    def test_malformed_json_body_raises_unhandled_error(self, user_credentials):
-        """BUG-7: response.json() is not guarded against JSONDecodeError.
-
-        A correctly-typed (application/json) but malformed body raises an
-        unhandled JSONDecodeError instead of a clean AuthenticationFailed.
-        """
+    def test_malformed_json_body_raises_authentication_failed(self, user_credentials):
+        """BUG-7: response.json() is guarded — a correctly-typed but
+        malformed body raises AuthenticationFailed, not JSONDecodeError."""
         with responses_mock.RequestsMock() as rsps:
             rsps.add(
                 responses_mock.POST,
@@ -126,7 +121,7 @@ class TestTokenManager:
 
             tm = TokenManager()
 
-            with pytest.raises(json.JSONDecodeError):
+            with pytest.raises(exceptions.AuthenticationFailed, match="invalid response"):
                 tm.authenticate(create_local_user=False, **user_credentials)
 
 

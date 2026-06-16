@@ -130,8 +130,10 @@ class EasyJWTUserAdmin(UserAdmin):
     filter_horizontal = ()
 
 
-# unregister the Group model from admin.
-admin.site.unregister(Group)
+try:
+    admin.site.unregister(Group)
+except admin.sites.NotRegistered:
+    pass
 
 
 # Create a new Group admin.
