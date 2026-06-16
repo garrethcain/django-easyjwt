@@ -89,34 +89,6 @@ class EasyJWTAuthentication(authentication.BaseAuthentication):
 
         return (True, {})
 
-    def __get_user_details(self, jwt: str) -> dict:
-        auth_header_types = settings.EASY_JWT["AUTH_HEADER_TYPES"]
-        root_url = settings.EASY_JWT["REMOTE_AUTH_SERVICE_URL"]
-        path = settings.EASY_JWT["REMOTE_AUTH_SERVICE_USER_PATH"]
-        timeout = settings.EASY_JWT.get("REMOTE_AUTH_REQUEST_TIMEOUT", 30)
-        ssl_verify = settings.EASY_JWT.get("REMOTE_AUTH_SSL_VERIFY", True)
-        headers: dict[str, str] = {
-            "Authorization": f"{auth_header_types[0]} {jwt}",
-            "content-type": "application/json",
-        }
-
-        request = requests.Request("GET", f"{root_url}{path}", data={}, headers=headers)
-        prepped = request.prepare()
-        prepped.headers.update(headers)
-
-        with requests.Session() as session:
-            try:
-                response = session.send(prepped, timeout=timeout, verify=ssl_verify)
-            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-                TokenManager._handle_request_error(e)
-
-        if response.status_code != 200:
-            raise exceptions.AuthenticationFailed(response.json())
-        try:
-            return json.loads(response.text)
-        except ValueError:
-            raise exceptions.AuthenticationFailed("Authentication service returned an invalid user response.")
-
     def __get_authorization_header(self, request):
         """
         Return request's 'Authorization:' header, as a bytestring.

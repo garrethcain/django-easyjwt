@@ -27,8 +27,10 @@ class TokenManager:
     def _handle_request_error(e: Exception) -> None:
         """Shared error handler for HTTP request exceptions."""
         if isinstance(e, requests.exceptions.ConnectionError):
+            logger.warning("Connection error to auth service: %s", e)
             raise exceptions.AuthenticationFailed("Authentication Service Connection Error.") from e
         elif isinstance(e, requests.exceptions.Timeout):
+            logger.warning("Timeout connecting to auth service: %s", e)
             raise exceptions.AuthenticationFailed("Authentication Service Timed Out.") from e
         raise e
 
@@ -59,8 +61,10 @@ class TokenManager:
                 verify=ssl_verify,
             )
         except requests.exceptions.ConnectionError as e:
+            logger.warning("Connection error to auth service: %s", e)
             raise exceptions.AuthenticationFailed("Authentication Service Connection Error.") from e
         except requests.exceptions.Timeout as e:
+            logger.warning("Timeout connecting to auth service: %s", e)
             raise exceptions.AuthenticationFailed("Authentication Service Timed Out.") from e
 
         content_type = response.headers.get("Content-Type")
@@ -177,6 +181,11 @@ class TokenManager:
                 },
             )
             if not s.is_valid(raise_exception=False):
+                logger.error(
+                    "USER_MODEL_SERIALIZER %s validation failed: %s",
+                    api_settings.USER_MODEL_SERIALIZER,
+                    s.errors,
+                )
                 raise exceptions.AuthenticationFailed(
                     f"Integrity error with USER_MODEL_SERIALIZER: {api_settings.USER_MODEL_SERIALIZER} "
                     "failed to parse the received payload from the auth server."
@@ -186,6 +195,7 @@ class TokenManager:
             msg = f"Could not import serializer '{api_settings.USER_MODEL_SERIALIZER}'"
             raise ImportError(msg)
         except IntegrityError as e:
+            logger.error("Integrity error creating/updating user: %s", e)
             raise exceptions.AuthenticationFailed(
                 f"Integrity error with user from Authentication Service. Different User models? {e}"
             ) from e
