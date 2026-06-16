@@ -124,6 +124,23 @@ class TestTokenManager:
             with pytest.raises(exceptions.AuthenticationFailed, match="invalid response"):
                 tm.authenticate(create_local_user=False, **user_credentials)
 
+    def test_unhandled_request_exception_raises_authentication_failed(self, user_credentials):
+        """Non-ConnectionError/Timeout request exceptions are caught by the
+        catch-all RequestException handler."""
+        import requests
+
+        with responses_mock.RequestsMock() as rsps:
+            rsps.add(
+                responses_mock.POST,
+                "http://remote-auth.test/auth/token/",
+                body=requests.exceptions.TooManyRedirects("Too many redirects"),
+            )
+
+            tm = TokenManager()
+
+            with pytest.raises(exceptions.AuthenticationFailed, match="Request Error"):
+                tm.authenticate(create_local_user=False, **user_credentials)
+
 
 @pytest.mark.django_db
 class TestCreateOrUpdateUser:
@@ -250,5 +267,28 @@ class TestPasswordChange:
 
             tm = TokenManager()
             result = tm.password_change("user@example.com", "old_pass", "new_pass")
+
+            assert "detail" in result
+
+    def test_password_change_uses_configured_path(self):
+        from unittest.mock import patch
+
+        from easyjwt_client import utils as utils_module
+
+        with responses_mock.RequestsMock() as rsps:
+            rsps.add(
+                responses_mock.POST,
+                "http://remote-auth.test/custom/password-change/",
+                json={"detail": "Password changed."},
+                status=200,
+            )
+
+            tm = TokenManager()
+            with patch.object(
+                utils_module.api_settings,
+                "REMOTE_AUTH_SERVICE_PASSWORD_CHANGE_PATH",
+                "/custom/password-change/",
+            ):
+                result = tm.password_change("user@example.com", "old_pass", "new_pass")
 
             assert "detail" in result

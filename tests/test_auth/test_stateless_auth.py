@@ -47,3 +47,12 @@ class TestJWTStatelessUserAuthentication:
         request.META = {}
 
         assert auth.authenticate(request) is None
+
+    def test_token_user_class_default_resolves(self):
+        from easyjwt_auth.settings import DEFAULTS
+
+        from django.utils.module_loading import import_string
+
+        cls = import_string(DEFAULTS["TOKEN_USER_CLASS"])
+        assert cls.__module__ == "easyjwt_auth.models"
+        assert cls.__name__ == "TokenUser"

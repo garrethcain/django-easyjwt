@@ -51,6 +51,20 @@ class TestCreateUserView:
         response = CreateUserView.as_view()(request)
         assert response.status_code == 400
 
+    def test_post_normalizes_email(self):
+        from easyjwt_user.models import User
+
+        url = reverse("create_user")
+        factory = APIRequestFactory()
+        request = factory.post(
+            "/",
+            {"email": "New.User@EXAMPLE.com", "password": "S3cure!P@ssw0rd#2026"},
+            format="json",
+        )
+        response = CreateUserView.as_view()(request)
+        assert response.status_code == 201
+        assert User.objects.filter(email="new.user@example.com").exists()
+
 
 @pytest.mark.django_db
 class TestAuthPasswordChangeView:

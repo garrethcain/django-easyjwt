@@ -43,10 +43,11 @@ class TokenViewBase(generics.GenericAPIView):
         if self.serializer_class:
             return self.serializer_class  # type: ignore
 
+        serializer_path = getattr(api_settings, self._serializer_class)
         try:
-            serializer = import_string(self._serializer_class)
+            serializer = import_string(serializer_path)
         except ImportError:
-            msg = f"Could not import serializer '{self._serializer_class}'"
+            msg = f"Could not import serializer '{serializer_path}'"
             raise ImportError(msg)
         return serializer
 
@@ -73,7 +74,7 @@ class TokenObtainPairView(TokenViewBase):
     token pair to prove the authentication of those credentials.
     """
 
-    _serializer_class = api_settings.TOKEN_OBTAIN_SERIALIZER
+    _serializer_class = "TOKEN_OBTAIN_SERIALIZER"
 
 
 token_obtain_pair = TokenObtainPairView.as_view()
@@ -85,7 +86,7 @@ class TokenRefreshView(TokenViewBase):
     token if the refresh token is valid.
     """
 
-    _serializer_class = api_settings.TOKEN_REFRESH_SERIALIZER
+    _serializer_class = "TOKEN_REFRESH_SERIALIZER"
 
 
 token_refresh = TokenRefreshView.as_view()
@@ -97,7 +98,7 @@ class TokenObtainSlidingView(TokenViewBase):
     prove the authentication of those credentials.
     """
 
-    _serializer_class = api_settings.SLIDING_TOKEN_OBTAIN_SERIALIZER
+    _serializer_class = "SLIDING_TOKEN_OBTAIN_SERIALIZER"
 
 
 token_obtain_sliding = TokenObtainSlidingView.as_view()
@@ -109,7 +110,7 @@ class TokenRefreshSlidingView(TokenViewBase):
     token's refresh period has not expired.
     """
 
-    _serializer_class = api_settings.SLIDING_TOKEN_REFRESH_SERIALIZER
+    _serializer_class = "SLIDING_TOKEN_REFRESH_SERIALIZER"
 
 
 token_refresh_sliding = TokenRefreshSlidingView.as_view()
@@ -121,7 +122,7 @@ class TokenVerifyView(TokenViewBase):
     information about a token's fitness for a particular use.
     """
 
-    _serializer_class = api_settings.TOKEN_VERIFY_SERIALIZER
+    _serializer_class = "TOKEN_VERIFY_SERIALIZER"
 
 
 token_verify = TokenVerifyView.as_view()
@@ -133,7 +134,7 @@ class TokenBlacklistView(TokenViewBase):
     `easyjwt_auth.token_blacklist` app installed.
     """
 
-    _serializer_class = api_settings.TOKEN_BLACKLIST_SERIALIZER
+    _serializer_class = "TOKEN_BLACKLIST_SERIALIZER"
 
 
 token_blacklist = TokenBlacklistView.as_view()

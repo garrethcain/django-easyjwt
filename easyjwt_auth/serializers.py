@@ -272,7 +272,6 @@ class CreateUserSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         password = validated_data.pop("password")
-        user = get_user_model().objects.create(**validated_data)  # type: ignore
-        user.set_password(password)
-        user.save()
-        return user
+        return get_user_model().objects.create_user(  # type: ignore
+            password=password, **validated_data
+        )

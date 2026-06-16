@@ -84,3 +84,15 @@ class TestTokenVerifyView:
         response = api_client.post(url, {}, format="json")
 
         assert response.status_code == 400
+
+
+class TestTokenViewBaseSettingsResolution:
+    def test_serializer_class_resolved_at_runtime(self):
+        from easyjwt_auth.views import TokenObtainPairView
+        from easyjwt_auth.settings import api_settings
+
+        view = TokenObtainPairView()
+        view.kwargs = {}
+        cls = view.get_serializer_class()
+        expected = api_settings.TOKEN_OBTAIN_SERIALIZER
+        assert f"{cls.__module__}.{cls.__name__}" == expected

@@ -31,6 +31,9 @@ class TokenManager:
         elif isinstance(e, requests.exceptions.Timeout):
             logger.warning("Timeout connecting to auth service: %s", e)
             raise exceptions.AuthenticationFailed("Authentication Service Timed Out.") from e
+        elif isinstance(e, requests.RequestException):
+            logger.warning("Request error contacting auth service: %s", e)
+            raise exceptions.AuthenticationFailed("Authentication Service Request Error.") from e
         raise e
 
     @staticmethod
@@ -65,6 +68,9 @@ class TokenManager:
         except requests.exceptions.Timeout as e:
             logger.warning("Timeout connecting to auth service: %s", e)
             raise exceptions.AuthenticationFailed("Authentication Service Timed Out.") from e
+        except requests.RequestException as e:
+            logger.warning("Request error contacting auth service: %s", e)
+            raise exceptions.AuthenticationFailed("Authentication Service Request Error.") from e
 
         content_type = response.headers.get("Content-Type")
         if content_type != "application/json":
@@ -93,7 +99,8 @@ class TokenManager:
             password=password,
             new_password=new_password,
         )
-        return self.__request("/auth/password-change/", payload)
+        path = api_settings.REMOTE_AUTH_SERVICE_PASSWORD_CHANGE_PATH
+        return self.__request(path, payload)
 
     def verify(self, token) -> dict:
         """
@@ -147,7 +154,7 @@ class TokenManager:
         with requests.Session() as session:
             try:
                 response = session.send(prepped, timeout=timeout, verify=ssl_verify)
-            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            except requests.RequestException as e:
                 self._handle_request_error(e)
 
         if response.status_code != 200:

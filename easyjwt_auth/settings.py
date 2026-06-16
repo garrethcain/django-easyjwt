@@ -32,7 +32,7 @@ DEFAULTS = {
     "AUTH_TOKEN_CLASSES": ("easyjwt_auth.tokens.AccessToken",),
     "TOKEN_TYPE_CLAIM": "token_type",
     "JTI_CLAIM": "jti",
-    "TOKEN_USER_CLASS": "easyjwt_user.models.TokenUser",
+    "TOKEN_USER_CLASS": "easyjwt_auth.models.TokenUser",
     "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
     "SLIDING_TOKEN_LIFETIME": timedelta(minutes=5),
     "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
