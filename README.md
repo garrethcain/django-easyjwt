@@ -2,7 +2,7 @@
 
 [![PyPI version](https://badge.fury.io/py/django-easyjwt.svg)](https://pypi.org/project/django-easyjwt/)
 [![Python](https://img.shields.io/pypi/pyversions/django-easyjwt.svg)](https://pypi.org/project/django-easyjwt/)
-[![Django](https://img.shields.io/badge/Django-3.2%20%7C%204.x%20%7C%205.0-green.svg)](https://www.djangoproject.com/)
+[![Django](https://img.shields.io/badge/Django-3.2%20%7C%204.x%20%7C%205.x%20%7C%206.0-green.svg)](https://www.djangoproject.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 A Django package for implementing remote JWT authentication in microservice architectures. It provides a centralized authentication service with multiple client services authenticating against it.
@@ -23,6 +23,7 @@ A Django package for implementing remote JWT authentication in microservice arch
 - [Advanced Usage](#advanced-usage)
   - [Extra Data](#extra-data)
   - [Permissions](#permissions)
+- [Security](#security)
 - [Running Tests](#running-tests)
 - [Changelog](#changelog)
 - [Acknowledgements](#acknowledgements)
@@ -43,20 +44,26 @@ When managing multiple services with the same users, a centralized authenticatio
 
 ## Features
 
-- **JWT Authentication**: Access and refresh token support
+- **JWT Authentication**: Access/refresh token pairs and sliding tokens
 - **Remote Auth**: Client services authenticate against a central auth service
+- **Stateless Auth**: Optional token-only authentication with no DB lookup (`JWTStatelessUserAuthentication`)
 - **Session Support**: Authenticated users can access Django admin
 - **Custom User Model**: Optional email-based user model included
-- **Token Blacklisting**: Optional token revocation support
+- **Token Blacklisting**: Optional token revocation via outstanding/blacklist tracking
+- **Password Security**: Django password validators enforced on create-user and password-change
+- **User Registration**: Built-in `create-user/` endpoint with email normalization
+- **Password Change**: Built-in `password-change/` endpoint with credential verification
+- **Sliding Tokens**: Optional single-token JWT with embedded refresh window
 - **Extensible**: Custom serializers for additional user data
-- **Configurable Timeouts**: HTTP request timeouts and SSL verification
+- **Configurable**: HTTP timeouts, SSL verification, and configurable endpoint paths
+- **Production Warnings**: Automatic logging when SSL or insecure HTTP is configured
 
 ---
 
 ## Installation
 
 ```bash
-uv pip install django-easyjwt
+uv add django-easyjwt
 ```
 
 Or with pip:
@@ -148,6 +155,7 @@ EASY_JWT = {
     "TOKEN_TYPE_CLAIM": "token_type",
     "TOKEN_USER_CLASS": "easyjwt_auth.models.TokenUser",
     "JTI_CLAIM": "jti",
+    "CHECK_REVOKE_TOKEN": False,
     "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
     "SLIDING_TOKEN_LIFETIME": timedelta(minutes=5),
     "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
@@ -222,6 +230,7 @@ EASY_JWT = {
     "REMOTE_AUTH_SERVICE_REFRESH_PATH": "/auth/token/refresh/",
     "REMOTE_AUTH_SERVICE_VERIFY_PATH": "/auth/token/verify/",
     "REMOTE_AUTH_SERVICE_USER_PATH": "/auth/user/",
+    "REMOTE_AUTH_SERVICE_PASSWORD_CHANGE_PATH": "/auth/password-change/",
     "REMOTE_AUTH_REQUEST_TIMEOUT": 30,
     "REMOTE_AUTH_SSL_VERIFY": True,
     "USER_ID_FIELD": "id",
@@ -285,41 +294,76 @@ uv run python manage.py runserver 0.0.0.0:8001
 
 ### Auth-Service Settings
 
-| Setting                  | Type      | Default     | Description                             |
-| ------------------------ | --------- | ----------- | --------------------------------------- |
-| `ACCESS_TOKEN_LIFETIME`  | timedelta | Required    | Access token validity duration          |
-| `REFRESH_TOKEN_LIFETIME` | timedelta | Required    | Refresh token validity duration         |
-| `ALGORITHM`              | str       | `"HS256"`   | JWT signing algorithm                   |
-| `SIGNING_KEY`            | str       | Required    | Secret key for signing tokens           |
-| `USER_ID_FIELD`          | str       | `"id"`      | User model field for ID                 |
-| `USER_ID_CLAIM`          | str       | `"user_id"` | JWT claim for user ID                   |
-| `CHECK_REVOKE_TOKEN`     | bool      | `False`     | Enable password-change token revocation |
+| Setting                          | Type      | Default                  | Description                                          |
+| -------------------------------- | --------- | ------------------------ | ---------------------------------------------------- |
+| `ACCESS_TOKEN_LIFETIME`          | timedelta | `timedelta(minutes=5)`   | Access token validity duration                       |
+| `REFRESH_TOKEN_LIFETIME`         | timedelta | `timedelta(days=1)`      | Refresh token validity duration                      |
+| `ROTATE_REFRESH_TOKENS`          | bool      | `False`                  | Issue a new refresh token on each refresh            |
+| `BLACKLIST_AFTER_ROTATION`       | bool      | `False`                  | Blacklist old refresh token after rotation           |
+| `UPDATE_LAST_LOGIN`              | bool      | `False`                  | Update user's `last_login` on token issuance         |
+| `ALGORITHM`                      | str       | `"HS256"`                | JWT signing algorithm                                |
+| `SIGNING_KEY`                    | str       | `settings.SECRET_KEY`   | Secret key for signing tokens                        |
+| `VERIFYING_KEY`                  | str       | `""`                     | Public key for asymmetric algorithms                 |
+| `AUDIENCE`                       | str       | `None`                   | Expected JWT audience claim                          |
+| `ISSUER`                         | str       | `None`                   | Expected JWT issuer claim                            |
+| `LEEWAY`         | int/float | `0`                      | Leeway in seconds for token expiration checks        |
+| `AUTH_HEADER_TYPES`              | tuple     | `("Bearer",)`            | Valid Authorization header types                     |
+| `AUTH_HEADER_NAME`               | str       | `"HTTP_AUTHORIZATION"`   | Header name for extracting JWT                       |
+| `USER_ID_FIELD`                  | str       | `"id"`                   | User model field for ID                              |
+| `USER_ID_CLAIM`                  | str       | `"user_id"`              | JWT claim name for user ID                           |
+| `TOKEN_USER_CLASS`               | str       | `"easyjwt_auth.models.TokenUser"` | Stateless user class for token-only auth    |
+| `CHECK_REVOKE_TOKEN`             | bool      | `False`                  | Invalidate tokens on password change                 |
+| `REVOKE_TOKEN_CLAIM`             | str       | `"hash_password"`        | Claim name for password hash revocation check        |
+| `SLIDING_TOKEN_LIFETIME`         | timedelta | `timedelta(minutes=5)`   | Sliding token validity                               |
+| `SLIDING_TOKEN_REFRESH_LIFETIME` | timedelta | `timedelta(days=1)`      | Sliding token refresh window                         |
 
 ### Client-Service Settings
 
-| Setting                            | Type  | Default                  | Description                     |
-| ---------------------------------- | ----- | ------------------------ | ------------------------------- |
-| `REMOTE_AUTH_SERVICE_URL`          | str   | Required                 | Base URL of auth-service        |
-| `REMOTE_AUTH_SERVICE_TOKEN_PATH`   | str   | `"/auth/token/"`         | Token endpoint path             |
-| `REMOTE_AUTH_SERVICE_REFRESH_PATH` | str   | `"/auth/token/refresh/"` | Refresh endpoint path           |
-| `REMOTE_AUTH_SERVICE_VERIFY_PATH`  | str   | `"/auth/token/verify/"`  | Verify endpoint path            |
-| `REMOTE_AUTH_SERVICE_USER_PATH`    | str   | `"/auth/user/"`          | User endpoint path              |
-| `REMOTE_AUTH_REQUEST_TIMEOUT`      | int   | `30`                     | HTTP request timeout in seconds |
-| `REMOTE_AUTH_SSL_VERIFY`           | bool  | `True`                   | Verify SSL certificates         |
-| `AUTH_HEADER_TYPES`                | tuple | `("Bearer",)`            | Valid auth header types         |
-| `USER_MODEL_SERIALIZER`            | str   | Built-in                 | Custom user serializer path     |
+| Setting                                   | Type   | Default                       | Description                            |
+| ----------------------------------------- | ------ | ----------------------------- | -------------------------------------- |
+| `REMOTE_AUTH_SERVICE_URL`                 | str    | `"http://127.0.0.1:8000"`    | Base URL of auth-service               |
+| `REMOTE_AUTH_SERVICE_TOKEN_PATH`          | str    | `"/auth/token/"`              | Token endpoint path                    |
+| `REMOTE_AUTH_SERVICE_REFRESH_PATH`        | str    | `"/auth/token/refresh/"`      | Refresh endpoint path                  |
+| `REMOTE_AUTH_SERVICE_VERIFY_PATH`         | str    | `"/auth/token/verify/"`       | Verify endpoint path                   |
+| `REMOTE_AUTH_SERVICE_USER_PATH`           | str    | `"/auth/user/"`               | User endpoint path                     |
+| `REMOTE_AUTH_SERVICE_PASSWORD_CHANGE_PATH` | str   | `"/auth/password-change/"`    | Password change endpoint path          |
+| `REMOTE_AUTH_REQUEST_TIMEOUT`             | int    | `30`                          | HTTP request timeout in seconds        |
+| `REMOTE_AUTH_SSL_VERIFY`                  | bool   | `True`                        | Verify SSL certificates                |
+| `AUTH_HEADER_TYPES`                       | tuple  | `("Bearer",)`                 | Valid auth header types                |
+| `USER_MODEL_SERIALIZER`                   | str    | `"easyjwt_user.serializers.TokenUserSerializer"` | Serializer for deserializing remote user data |
 
 ---
 
 ## API Endpoints
 
-| Endpoint               | Method | Description                      |
-| ---------------------- | ------ | -------------------------------- |
-| `/auth/token/`         | POST   | Obtain access and refresh tokens |
-| `/auth/token/refresh/` | POST   | Refresh an expired access token  |
-| `/auth/token/verify/`  | POST   | Verify if a token is valid       |
-| `/auth/users/`         | GET    | List users (auth-service only)   |
-| `/auth/users/{id}/`    | GET    | Get user details                 |
+### Auth-Service (`easyjwt_auth.urls`)
+
+| Endpoint                  | Method | Auth  | Description                          |
+| ------------------------- | ------ | ----- | ------------------------------------ |
+| `/auth/token/`            | POST   | None  | Obtain access and refresh tokens     |
+| `/auth/token/refresh/`    | POST   | None  | Refresh an expired access token      |
+| `/auth/token/verify/`     | POST   | None  | Verify if a token is valid           |
+| `/auth/create-user/`      | POST   | None  | Register a new user account          |
+| `/auth/password-change/`  | POST   | None  | Change password (verifies credentials) |
+| `/auth/login/`            | GET    | None  | Django LoginView for session auth    |
+
+### Client-Service (`easyjwt_client.urls`)
+
+| Endpoint                          | Method | Auth    | Description                           |
+| --------------------------------- | ------ | ------- | ------------------------------------- |
+| `/auth/token/`                    | POST   | None    | Obtain tokens via remote auth-service |
+| `/auth/token/refresh/`            | POST   | None    | Refresh token via remote              |
+| `/auth/token/verify/`             | POST   | None    | Verify token via remote               |
+| `/auth/password-change/`          | POST   | Session | Change password (validates match)     |
+| `/auth/password-change/done/`     | GET    | Session | Password change confirmation page     |
+| `/auth/password-reset/`           | GET    | None    | Redirects to auth-service reset page  |
+| `/auth/login/`                    | GET    | None    | Django LoginView for session auth     |
+
+### User (`easyjwt_user.urls`)
+
+| Endpoint  | Method | Auth | Description                    |
+| --------- | ------ | ---- | ------------------------------ |
+| `/auth/user/` | GET    | JWT  | Get current user's profile data |
 
 ---
 
@@ -370,6 +414,54 @@ curl -X POST \
   -H "Content-Type: application/json" \
   -d '{"token": "${ACCESS_TOKEN}"}' \
   http://127.0.0.1:8001/auth/token/verify/
+```
+
+### Create User (Auth-Service)
+
+```bash
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"email": "newuser@test.com", "password": "S3cure!P@ssw0rd"}' \
+  http://127.0.0.1:8000/auth/create-user/
+```
+
+Response:
+
+```json
+{
+  "id": 1,
+  "email": "newuser@test.com",
+  "first_name": "",
+  "last_name": "",
+  "phone": null
+}
+```
+
+### Change Password (Auth-Service)
+
+```bash
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@test.com", "password": "old-pass", "new_password": "N3wP@ss!2026"}' \
+  http://127.0.0.1:8000/auth/password-change/
+```
+
+### Get User Profile
+
+```bash
+curl -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+  http://127.0.0.1:8000/auth/user/
+```
+
+Response:
+
+```json
+{
+  "id": 1,
+  "email": "user@test.com",
+  "first_name": "Test",
+  "last_name": "User"
+}
 ```
 
 ---
@@ -464,6 +556,18 @@ class AccessGroupPermission(permissions.BasePermission):
 
 ---
 
+## Security
+
+- **Password Validation**: Django's `AUTH_PASSWORD_VALIDATORS` are enforced on both the `create-user/` and `password-change/` endpoints
+- **Email Normalization**: User creation uses `UserManager.create_user()` which normalizes and lowercases email addresses
+- **Credential Verification**: Password change requires the current password — old credentials are verified before accepting a new password
+- **Error Sanitization**: Remote auth error responses do not leak upstream server details (raw response bodies, tracebacks) to clients
+- **SSL/HTTP Warnings**: The client app logs a warning at startup when `DEBUG=False` and either `SSL_VERIFY=False` or `REMOTE_AUTH_SERVICE_URL` uses `http://`
+- **Token Revocation**: Optional `CHECK_REVOKE_TOKEN` invalidates all outstanding JWTs when a user changes their password
+- **Token Blacklisting**: Optional `easyjwt_auth.token_blacklist` app provides server-side token revocation with outstanding token tracking
+
+---
+
 ## Running Tests
 
 ```bash
@@ -481,9 +585,28 @@ uv run pytest --cov=easyjwt_auth --cov=easyjwt_client --cov=easyjwt_user
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for version history.
+See [CHANGELOG.md](CHANGELOG.md) for full version history.
 
-### Recent Changes (1.0.0)
+### v1.0.6+
+
+- Fixed `TOKEN_USER_CLASS` default pointing to wrong module path
+- `CreateUserSerializer` now uses `create_user()` for email normalization
+- Added `REMOTE_AUTH_SERVICE_PASSWORD_CHANGE_PATH` setting (was hardcoded)
+- `TokenViewBase` serializer classes resolved at runtime, not import time
+- Added catch-all `requests.RequestException` handler for unhandled HTTP errors
+- Merged CI publish workflow into version workflow (fixes `[skip ci]` blocking PyPI)
+
+### v1.0.5+
+
+- Security hardening — 21 review issues fixed across security, bugs, design, and test coverage
+- Removed dead `jwt_secret` field (migration 0002)
+- Unified settings access via `api_settings` across all modules
+- `RemoteAuthBackend` inherits `BaseBackend` (correct Django signature)
+- Added comprehensive test coverage (61% → 88%, 155 tests)
+- Password confirmation check, response sanitization, admin password validation
+- SSL/HTTP production warning in client `apps.py`
+
+### v1.0.0
 
 - Replaced MD5 with SHA-256 for password hashing
 - Renamed `ModelBackend` to `RemoteAuthBackend`
