@@ -72,8 +72,9 @@ commit_author = "github-actions[bot] <github-actions[bot]@users.noreply.github.c
 match = "(master|main)"
 prerelease = false
 
-[tool.semantic_release.changelog]
+[tool.semantic_release.changelog.default_templates]
 changelog_file = "CHANGELOG.md"
+output_format = "md"
 
 [tool.semantic_release.commit_parser_options]
 allowed_tags = [
