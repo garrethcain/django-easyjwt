@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- version list -->
 
+## v1.0.11 (2026-06-17)
+
+### Bug Fixes
+
+- Updated PSR config to match v10
+  ([`c62088b`](https://github.com/garrethcain/django-easyjwt/commit/c62088bf598f5b2df2faa5406f6072c4f9abecb6))
+
+
 ## Unreleased
 
 ### Bug Fixes
