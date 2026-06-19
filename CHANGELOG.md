@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- version list -->
 
+## v1.0.13 (2026-06-19)
+
+### Bug Fixes
+
+- **easyjwt_user**: Add missing email uniqueness migration
+  ([`32cc28c`](https://github.com/garrethcain/django-easyjwt/commit/32cc28c230876170884d69f790f5992359704212))
+
+
 ## v1.0.12 (2026-06-19)
 
 ### Bug Fixes
