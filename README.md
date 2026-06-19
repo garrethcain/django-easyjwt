@@ -1,6 +1,6 @@
 # Django-EasyJWT
 
-[![PyPI version](https://badge.fury.io/py/django-easyjwt.svg)](https://pypi.org/project/django-easyjwt/)
+[![PyPI version](https://img.shields.io/pypi/v/django-easyjwt.svg)](https://pypi.org/project/django-easyjwt/)
 [![Python](https://img.shields.io/pypi/pyversions/django-easyjwt.svg)](https://pypi.org/project/django-easyjwt/)
 [![Django](https://img.shields.io/badge/Django-3.2%20%7C%204.x%20%7C%205.x%20%7C%206.0-green.svg)](https://www.djangoproject.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
