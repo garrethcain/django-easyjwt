@@ -14,6 +14,17 @@ class EasyJWTClientConfig(AppConfig):
     def ready(self):
         from django.conf import settings
 
+        from . import checks  # noqa: F401  (registers the system check)
+
+        missing = checks.get_missing_required_settings()
+        if missing:
+            logger.error(
+                "Required EASY_JWT settings are not configured: %s. "
+                "Remote auth calls will fail until they are set.",
+                ", ".join(missing),
+            )
+            return
+
         if not settings.DEBUG:
             if not api_settings.REMOTE_AUTH_SSL_VERIFY:
                 logger.warning(
