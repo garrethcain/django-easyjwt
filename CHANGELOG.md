@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- version list -->
 
+## v1.0.12 (2026-06-19)
+
+### Bug Fixes
+
+- **easyjwt_client**: Validate required settings in ready() to prevent mypy/django-stubs crash
+  ([`b0f1e18`](https://github.com/garrethcain/django-easyjwt/commit/b0f1e18d7dfb53f87e2ab2473348b34f88e6c338))
+
+
 ## v1.0.11 (2026-06-17)
 
 ### Bug Fixes
