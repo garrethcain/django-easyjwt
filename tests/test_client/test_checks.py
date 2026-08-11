@@ -126,6 +126,20 @@ class TestCookieModeChecks:
         ids = [e.id for e in errors]
         assert "easyjwt_client.E003" not in ids
 
+    def test_e003_rejects_non_http_scheme(self, monkeypatch):
+        monkeypatch.setattr(api_settings, "REFRESH_TOKEN_IN_COOKIE", True)
+        monkeypatch.setattr(api_settings, "ALLOWED_AUTH_ORIGINS", ["ftp://app.com"])
+        errors = checks.check_cookie_mode_config(None)
+        ids = [e.id for e in errors]
+        assert "easyjwt_client.E003" in ids
+
+    def test_e003_rejects_trailing_slash(self, monkeypatch):
+        monkeypatch.setattr(api_settings, "REFRESH_TOKEN_IN_COOKIE", True)
+        monkeypatch.setattr(api_settings, "ALLOWED_AUTH_ORIGINS", ["https://app.com/"])
+        errors = checks.check_cookie_mode_config(None)
+        ids = [e.id for e in errors]
+        assert "easyjwt_client.E003" in ids
+
     def test_w001_insecure_cookie_outside_debug(self, monkeypatch):
         monkeypatch.setattr(api_settings, "REFRESH_TOKEN_IN_COOKIE", True)
         monkeypatch.setattr(api_settings, "AUTH_COOKIE_SECURE", False)

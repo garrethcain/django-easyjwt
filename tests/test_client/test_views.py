@@ -213,7 +213,7 @@ class TestCookieModeLogin:
             assert resp.cookies["refresh_token"].value == "r1"
             # HttpOnly + SameSite configured
             assert "HttpOnly" in resp.cookies["refresh_token"].OutputString()
-            assert "Path=/auth/token/" in resp.cookies["refresh_token"].OutputString()
+            assert "Path=/" in resp.cookies["refresh_token"].OutputString()
 
     def test_login_body_has_no_refresh_in_cookie_mode(self, cookie_mode, user, user_credentials):
         with responses_mock.RequestsMock() as rsps:

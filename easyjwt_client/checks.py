@@ -61,15 +61,18 @@ def check_required_settings(app_configs, **kwargs):
 def _normalize_origin(value):
     """Return a normalized ``"scheme://host[:port]"`` string, or None if invalid.
 
-    A valid origin has no path, query, or fragment and no trailing slash.
-    Used to validate ``ALLOWED_AUTH_ORIGINS`` entries.
+    A valid origin is ``http://`` or ``https://`` followed by a host with no
+    path, query, fragment, or trailing slash. Used to validate
+    ``ALLOWED_AUTH_ORIGINS`` entries.
     """
     parts = urlsplit(value)
-    if not parts.scheme or not parts.netloc:
+    if parts.scheme not in ("http", "https"):
         return None
-    if parts.path not in ("", "/") or parts.query or parts.fragment:
+    if not parts.netloc:
         return None
-    return f"{parts.scheme}://{parts.netloc}".rstrip("/")
+    if parts.path or parts.query or parts.fragment:
+        return None
+    return f"{parts.scheme}://{parts.netloc}"
 
 
 @register()

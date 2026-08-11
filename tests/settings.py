@@ -77,10 +77,6 @@ EASY_JWT = {
     # Refresh-token cookie support — opt-in. Tests that exercise cookie mode
     # enable REFRESH_TOKEN_IN_COOKIE=True via monkeypatch on api_settings.
     "REFRESH_TOKEN_IN_COOKIE": False,
-    # Tests mount easyjwt_client.urls under "auth/", so the public refresh
-    # route is /auth/token/refresh/. The cookie path must match that prefix
-    # for the test client to scope the cookie correctly.
-    "AUTH_COOKIE_PATH": "/auth/token/",
     "AUTH_COOKIE_NAME": "refresh_token",
     "AUTH_COOKIE_HTTP_ONLY": True,
     "AUTH_COOKIE_SECURE": False,

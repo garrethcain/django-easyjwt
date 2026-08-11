@@ -32,11 +32,12 @@ DEFAULTS = {
     "AUTH_COOKIE_HTTP_ONLY": True,
     "AUTH_COOKIE_SECURE": False,  # W001 warns when DEBUG=False; set True in production over HTTPS
     "AUTH_COOKIE_SAMESITE": "Lax",
-    # Cookie identity is name + domain + path; the path must match the PUBLIC
-    # URL prefix under which easyjwt_client.urls is mounted (e.g. "/auth/token/"
-    # if included under path("auth/", include("easyjwt_client.urls"))), not the
-    # urls.py fragment. Default "/token/" assumes root mounting.
-    "AUTH_COOKIE_PATH": "/token/",
+    # Cookie identity is name + domain + path; the browser only sends the
+    # cookie to URLs under this path. The default "/" works regardless of
+    # where easyjwt_client.urls is mounted. Narrow this to the public URL
+    # prefix (e.g. "/auth/token/") for tighter scoping once you know your
+    # mount point.
+    "AUTH_COOKIE_PATH": "/",
     "AUTH_COOKIE_DOMAIN": None,
     "AUTH_COOKIE_MAX_AGE": None,  # None = session cookie; cap at refresh-token lifetime for persistence
     # Optional defense-in-depth: exact-origin allowlist for cookie-bearing
