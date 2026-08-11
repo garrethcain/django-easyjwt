@@ -85,3 +85,66 @@ class TestRegisteredCheck:
 
     def test_returns_empty_when_configured(self):
         assert checks.check_required_settings(None) == []
+
+
+class TestCookieModeChecks:
+    """Tests for E002/E003/W001/W002 — the cookie-mode system checks."""
+
+    def test_checks_silent_when_cookie_mode_disabled(self):
+        """No cookie-mode warnings/errors when REFRESH_TOKEN_IN_COOKIE is False."""
+        errors = checks.check_cookie_mode_config(None)
+        assert errors == []
+
+    def test_e002_csrf_middleware_missing(self, monkeypatch):
+        monkeypatch.setattr(api_settings, "REFRESH_TOKEN_IN_COOKIE", True)
+        middleware_without_csrf = [
+            "django.contrib.sessions.middleware.SessionMiddleware",
+            "django.middleware.common.CommonMiddleware",
+        ]
+        with override_settings(MIDDLEWARE=middleware_without_csrf):
+            errors = checks.check_cookie_mode_config(None)
+        ids = [e.id for e in errors]
+        assert "easyjwt_client.E002" in ids
+
+    def test_e002_not_raised_when_middleware_present(self, monkeypatch):
+        monkeypatch.setattr(api_settings, "REFRESH_TOKEN_IN_COOKIE", True)
+        errors = checks.check_cookie_mode_config(None)
+        ids = [e.id for e in errors]
+        assert "easyjwt_client.E002" not in ids
+
+    def test_e003_malformed_origin_with_path(self, monkeypatch):
+        monkeypatch.setattr(api_settings, "REFRESH_TOKEN_IN_COOKIE", True)
+        monkeypatch.setattr(api_settings, "ALLOWED_AUTH_ORIGINS", ["https://app.com/login"])
+        errors = checks.check_cookie_mode_config(None)
+        ids = [e.id for e in errors]
+        assert "easyjwt_client.E003" in ids
+
+    def test_e003_not_raised_for_valid_origin(self, monkeypatch):
+        monkeypatch.setattr(api_settings, "REFRESH_TOKEN_IN_COOKIE", True)
+        monkeypatch.setattr(api_settings, "ALLOWED_AUTH_ORIGINS", ["https://app.com"])
+        errors = checks.check_cookie_mode_config(None)
+        ids = [e.id for e in errors]
+        assert "easyjwt_client.E003" not in ids
+
+    def test_w001_insecure_cookie_outside_debug(self, monkeypatch):
+        monkeypatch.setattr(api_settings, "REFRESH_TOKEN_IN_COOKIE", True)
+        monkeypatch.setattr(api_settings, "AUTH_COOKIE_SECURE", False)
+        with override_settings(DEBUG=False):
+            errors = checks.check_cookie_mode_config(None)
+        ids = [e.id for e in errors]
+        assert "easyjwt_client.W001" in ids
+
+    def test_w001_not_raised_when_cookie_mode_off(self, monkeypatch):
+        """W001 must be gated on cookie mode to avoid noise on body-only installs."""
+        monkeypatch.setattr(api_settings, "AUTH_COOKIE_SECURE", False)
+        with override_settings(DEBUG=False):
+            errors = checks.check_cookie_mode_config(None)
+        ids = [e.id for e in errors]
+        assert "easyjwt_client.W001" not in ids
+
+    def test_w002_csrf_httponly_incompatible(self, monkeypatch):
+        monkeypatch.setattr(api_settings, "REFRESH_TOKEN_IN_COOKIE", True)
+        with override_settings(CSRF_COOKIE_HTTPONLY=True):
+            errors = checks.check_cookie_mode_config(None)
+        ids = [e.id for e in errors]
+        assert "easyjwt_client.W002" in ids
