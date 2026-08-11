@@ -339,7 +339,7 @@ uv run python manage.py runserver 0.0.0.0:8001
 | `AUTH_COOKIE_HTTP_ONLY`                   | bool   | `True`                        | Prevent JS access to refresh cookie    |
 | `AUTH_COOKIE_SECURE`                      | bool   | `False`                       | HTTPS-only (set True in prod)          |
 | `AUTH_COOKIE_SAMESITE`                    | str    | `"Lax"`                       | SameSite cookie attribute              |
-| `AUTH_COOKIE_PATH`                        | str    | `"/token/"`                   | Must match public URL prefix           |
+| `AUTH_COOKIE_PATH`                        | str    | `"/"`                          | Safe default; narrow to public token-route prefix for tighter scoping |
 | `AUTH_COOKIE_DOMAIN`                      | str    | `None`                        | Cookie domain (None = current host)    |
 | `AUTH_COOKIE_MAX_AGE`                     | int    | `None`                        | Cookie max-age in seconds              |
 | `ALLOWED_AUTH_ORIGINS`                    | list   | `None`                        | Defense-in-depth origin allowlist      |
@@ -601,7 +601,7 @@ Non-browser clients should leave `REFRESH_TOKEN_IN_COOKIE = False` and continue 
 | `AUTH_COOKIE_HTTP_ONLY` | `True` | JS cannot read the cookie. |
 | `AUTH_COOKIE_SECURE` | `False` | Set `True` in production over HTTPS. |
 | `AUTH_COOKIE_SAMESITE` | `"Lax"` | `None`, `"Lax"`, or `"Strict"`. |
-| `AUTH_COOKIE_PATH` | `"/token/"` | **Must match the public URL prefix** under which `easyjwt_client.urls` is mounted (e.g. `"/api/auth/token/"` if included under `path("api/auth/", ...)`). |
+| `AUTH_COOKIE_PATH` | `"/"` | Safe generic default — works regardless of mount prefix. Narrow to the public token-route prefix (e.g. `"/auth/token/"`) for tighter scoping once you know your mount point. |
 | `AUTH_COOKIE_DOMAIN` | `None` | `None` = current host. |
 | `AUTH_COOKIE_MAX_AGE` | `None` | `None` = session cookie. Cap at the refresh-token lifetime for persistence. |
 | `ALLOWED_AUTH_ORIGINS` | `None` | Optional exact-origin allowlist for defense-in-depth. |
@@ -632,7 +632,7 @@ Cookie mode requires `django.middleware.csrf.CsrfViewMiddleware` in `MIDDLEWARE`
 The logout blacklist call requires:
 1. `easyjwt_auth.token_blacklist` in `INSTALLED_APPS` on the auth-service.
 2. The `token/blacklist/` route (wired by default in `easyjwt_auth/urls.py`).
-3. `ROTATE_REFRESH_TOKENS=True` and `BLACKLIST_AFTER_ROTATION=True` on the auth-service for refresh-token rotation to rewrite the cookie.
+3. `ROTATE_REFRESH_TOKENS=True` on the auth-service for refresh-token rotation to rewrite the cookie. `BLACKLIST_AFTER_ROTATION=True` is recommended to revoke the previous refresh token but is not required for the cookie rewrite.
 
 ### Logout Caveats
 
