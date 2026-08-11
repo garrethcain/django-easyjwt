@@ -120,6 +120,18 @@ class TokenManager:
 
         return self.__request(path, payload)
 
+    def blacklist(self, refresh) -> dict:
+        """
+        Blacklists a Refresh token against the remote Auth-Service.
+
+        Requires the ``easyjwt_auth.token_blacklist`` app to be installed on
+        the auth-service and the ``token/blacklist/`` route to be exposed.
+        """
+        path = api_settings.REMOTE_AUTH_SERVICE_BLACKLIST_PATH
+        payload = {"refresh": refresh}
+
+        return self.__request(path, payload)
+
     def authenticate(self, create_local_user=True, *args, **kwargs):
         """
         Returns an Access & Refresh token if authenticated against the remote

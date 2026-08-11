@@ -27,6 +27,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
 ]
@@ -69,9 +70,21 @@ EASY_JWT = {
     "REMOTE_AUTH_SERVICE_VERIFY_PATH": "/auth/token/verify/",
     "REMOTE_AUTH_SERVICE_USER_PATH": "/auth/user/",
     "REMOTE_AUTH_SERVICE_PASSWORD_CHANGE_PATH": "/auth/password-change/",
+    "REMOTE_AUTH_SERVICE_BLACKLIST_PATH": "/auth/token/blacklist/",
     "REMOTE_AUTH_REQUEST_TIMEOUT": 30,  # Timeout in seconds for HTTP requests
     "REMOTE_AUTH_SSL_VERIFY": True,  # Enable SSL certificate verification
     "USER_MODEL_SERIALIZER": "easyjwt_user.serializers.TokenUserSerializer",
+    # Refresh-token cookie support — opt-in. Tests that exercise cookie mode
+    # enable REFRESH_TOKEN_IN_COOKIE=True via monkeypatch on api_settings.
+    "REFRESH_TOKEN_IN_COOKIE": False,
+    "AUTH_COOKIE_NAME": "refresh_token",
+    "AUTH_COOKIE_HTTP_ONLY": True,
+    "AUTH_COOKIE_SECURE": False,
+    "AUTH_COOKIE_SAMESITE": "Lax",
+    "AUTH_COOKIE_DOMAIN": None,
+    "AUTH_COOKIE_MAX_AGE": None,
+    "ALLOWED_AUTH_ORIGINS": None,
+    "BLACKLIST_ON_LOGOUT": True,
 }
 
 USE_TZ = True

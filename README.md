@@ -23,6 +23,7 @@ A Django package for implementing remote JWT authentication in microservice arch
 - [Advanced Usage](#advanced-usage)
   - [Extra Data](#extra-data)
   - [Permissions](#permissions)
+- [Refresh-Token Cookies & CSRF](#refresh-token-cookies--csrf)
 - [Security](#security)
 - [Running Tests](#running-tests)
 - [Changelog](#changelog)
@@ -57,6 +58,7 @@ When managing multiple services with the same users, a centralized authenticatio
 - **Extensible**: Custom serializers for additional user data
 - **Configurable**: HTTP timeouts, SSL verification, and configurable endpoint paths
 - **Production Warnings**: Automatic logging when SSL or insecure HTTP is configured
+- **Refresh-Token Cookies**: Optional HttpOnly cookie storage with CSRF protection and logout blacklisting for browser-based SPAs
 
 ---
 
@@ -327,10 +329,21 @@ uv run python manage.py runserver 0.0.0.0:8001
 | `REMOTE_AUTH_SERVICE_VERIFY_PATH`         | str    | `"/auth/token/verify/"`       | Verify endpoint path                   |
 | `REMOTE_AUTH_SERVICE_USER_PATH`           | str    | `"/auth/user/"`               | User endpoint path                     |
 | `REMOTE_AUTH_SERVICE_PASSWORD_CHANGE_PATH` | str   | `"/auth/password-change/"`    | Password change endpoint path          |
+| `REMOTE_AUTH_SERVICE_BLACKLIST_PATH`      | str    | `"/auth/token/blacklist/"`    | Token blacklist endpoint path          |
 | `REMOTE_AUTH_REQUEST_TIMEOUT`             | int    | `30`                          | HTTP request timeout in seconds        |
 | `REMOTE_AUTH_SSL_VERIFY`                  | bool   | `True`                        | Verify SSL certificates                |
 | `AUTH_HEADER_TYPES`                       | tuple  | `("Bearer",)`                 | Valid auth header types                |
 | `USER_MODEL_SERIALIZER`                   | str    | `"easyjwt_user.serializers.TokenUserSerializer"` | Serializer for deserializing remote user data |
+| `REFRESH_TOKEN_IN_COOKIE`                 | bool   | `False`                       | Opt-in: store refresh in HttpOnly cookie |
+| `AUTH_COOKIE_NAME`                        | str    | `"refresh_token"`             | Refresh cookie name                    |
+| `AUTH_COOKIE_HTTP_ONLY`                   | bool   | `True`                        | Prevent JS access to refresh cookie    |
+| `AUTH_COOKIE_SECURE`                      | bool   | `False`                       | HTTPS-only (set True in prod)          |
+| `AUTH_COOKIE_SAMESITE`                    | str    | `"Lax"`                       | SameSite cookie attribute              |
+| `AUTH_COOKIE_PATH`                        | str    | `"/"`                          | Safe default; narrow to public token-route prefix for tighter scoping |
+| `AUTH_COOKIE_DOMAIN`                      | str    | `None`                        | Cookie domain (None = current host)    |
+| `AUTH_COOKIE_MAX_AGE`                     | int    | `None`                        | Cookie max-age in seconds              |
+| `ALLOWED_AUTH_ORIGINS`                    | list   | `None`                        | Defense-in-depth origin allowlist      |
+| `BLACKLIST_ON_LOGOUT`                     | bool   | `True`                        | Best-effort blacklist on logout        |
 
 ---
 
@@ -343,6 +356,7 @@ uv run python manage.py runserver 0.0.0.0:8001
 | `/auth/token/`            | POST   | None  | Obtain access and refresh tokens     |
 | `/auth/token/refresh/`    | POST   | None  | Refresh an expired access token      |
 | `/auth/token/verify/`     | POST   | None  | Verify if a token is valid           |
+| `/auth/token/blacklist/`  | POST   | None  | Blacklist a refresh token (revocation) |
 | `/auth/create-user/`      | POST   | None  | Register a new user account          |
 | `/auth/password-change/`  | POST   | None  | Change password (verifies credentials) |
 | `/auth/login/`            | GET    | None  | Django LoginView for session auth    |
@@ -354,6 +368,8 @@ uv run python manage.py runserver 0.0.0.0:8001
 | `/auth/token/`                    | POST   | None    | Obtain tokens via remote auth-service |
 | `/auth/token/refresh/`            | POST   | None    | Refresh token via remote              |
 | `/auth/token/verify/`             | POST   | None    | Verify token via remote               |
+| `/auth/token/logout/`             | POST   | None    | Clear refresh cookie + blacklist (cookie mode) |
+| `/auth/csrf/`                     | GET    | None    | Bootstrap CSRF cookie for SPAs (cookie mode)   |
 | `/auth/password-change/`          | POST   | Session | Change password (validates match)     |
 | `/auth/password-change/done/`     | GET    | Session | Password change confirmation page     |
 | `/auth/password-reset/`           | GET    | None    | Redirects to auth-service reset page  |
@@ -553,6 +569,76 @@ class AccessGroupPermission(permissions.BasePermission):
             and view.access_level.startswith(request.user.accessgroup.user_type)
         )
 ```
+
+---
+
+## Refresh-Token Cookies & CSRF
+
+By default, refresh tokens are returned in the JSON response body — suitable for mobile apps and server-to-server clients. For browser-based SPAs, enable **cookie mode** so the refresh token is stored in an `HttpOnly` cookie and never exposed to JavaScript:
+
+```python
+EASY_JWT = {
+    ...,
+    "REFRESH_TOKEN_IN_COOKIE": True,
+}
+```
+
+When enabled:
+
+- **Login** (`token/`) sets the refresh token as an `HttpOnly` cookie and **removes it from the JSON body** (XSS protection — JavaScript cannot read it).
+- **Refresh** (`token/refresh/`) reads the refresh token from the cookie (not the body) and rotates the cookie if `ROTATE_REFRESH_TOKENS` is enabled on the auth-service.
+- **Logout** (`token/logout/`) clears the cookie and best-effort blacklists the token server-side.
+- **CSRF protection** is automatically applied to all three endpoints.
+
+Non-browser clients should leave `REFRESH_TOKEN_IN_COOKIE = False` and continue reading refresh tokens from the JSON body.
+
+### Cookie Settings
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `REFRESH_TOKEN_IN_COOKIE` | `False` | Master switch (opt-in). |
+| `AUTH_COOKIE_NAME` | `"refresh_token"` | Cookie key. |
+| `AUTH_COOKIE_HTTP_ONLY` | `True` | JS cannot read the cookie. |
+| `AUTH_COOKIE_SECURE` | `False` | Set `True` in production over HTTPS. |
+| `AUTH_COOKIE_SAMESITE` | `"Lax"` | `None`, `"Lax"`, or `"Strict"`. |
+| `AUTH_COOKIE_PATH` | `"/"` | Safe generic default — works regardless of mount prefix. Narrow to the public token-route prefix (e.g. `"/auth/token/"`) for tighter scoping once you know your mount point. |
+| `AUTH_COOKIE_DOMAIN` | `None` | `None` = current host. |
+| `AUTH_COOKIE_MAX_AGE` | `None` | `None` = session cookie. Cap at the refresh-token lifetime for persistence. |
+| `ALLOWED_AUTH_ORIGINS` | `None` | Optional exact-origin allowlist for defense-in-depth. |
+| `BLACKLIST_ON_LOGOUT` | `True` | Best-effort server-side refresh-token revocation on logout. |
+
+### CSRF Requirements
+
+Cookie mode requires `django.middleware.csrf.CsrfViewMiddleware` in `MIDDLEWARE` (enforced by the **E002** system check). The library ships a bootstrap endpoint:
+
+1. **SPA calls** `GET <client>/csrf/` — Django emits the `csrftoken` cookie.
+2. **SPA reads** the `csrftoken` cookie from `document.cookie`.
+3. **SPA sends** it in the `X-CSRFToken` header on `POST` requests to `token/`, `token/refresh/`, and `token/logout/`.
+
+**W002 warning**: `CSRF_COOKIE_HTTPONLY=True` is incompatible with this bootstrap pattern — JavaScript cannot read the cookie. If you need `HttpOnly` CSRF cookies, deliver the token via a rendered `{% csrf_token %}` tag in HTML instead.
+
+### Deployment Tiers
+
+| Tier | Setup | Support |
+|------|-------|---------|
+| **A. Same-origin SPA + API** | `GET /csrf/` → read `csrftoken` → send `X-CSRFToken`. | Fully supported (default). |
+| **B. Same parent domain** (`app.example.com` + `api.example.com`) | Set `CSRF_COOKIE_DOMAIN=".example.com"`, `CSRF_TRUSTED_ORIGINS=["https://app.example.com"]`, and configure CORS for credentialed requests. | Documented recipe. |
+| **C. Truly cross-site** | Use a same-site BFF or reverse proxy. `SameSite=None;Secure` cookie auth is fragile due to third-party cookie restrictions. | Recommended. |
+
+`ALLOWED_AUTH_ORIGINS` performs defense-in-depth Origin validation; it does **not** by itself make cross-origin cookie authentication work — CORS and `CSRF_TRUSTED_ORIGINS` configuration is required for tier B.
+
+### Auth-Service Prerequisites
+
+The logout blacklist call requires:
+1. `easyjwt_auth.token_blacklist` in `INSTALLED_APPS` on the auth-service.
+2. The `token/blacklist/` route (wired by default in `easyjwt_auth/urls.py`).
+3. `ROTATE_REFRESH_TOKENS=True` on the auth-service for refresh-token rotation to rewrite the cookie. `BLACKLIST_AFTER_ROTATION=True` is recommended to revoke the previous refresh token but is not required for the cookie rewrite.
+
+### Logout Caveats
+
+- Blacklisting a refresh token does **not** invalidate an already-issued access JWT — keep access tokens short-lived.
+- The frontend must also discard its in-memory access token on logout.
+- The blacklist call is best-effort: if the auth-service is unreachable, the cookie is still cleared (logged out on the client), but a copied refresh token remains valid until its natural expiry.
 
 ---
 

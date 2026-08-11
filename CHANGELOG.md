@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- version list -->
 
+## v1.1.0 (2026-08-11)
+
+### Features
+
+- **easyjwt_client**: Opt-in refresh-token cookie mode with CSRF protection and logout blacklisting for browser-based SPAs
+
+
 ## v1.0.13 (2026-06-19)
 
 ### Bug Fixes
